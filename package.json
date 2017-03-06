@@ -18,13 +18,15 @@
     "mocha": "^3.2.0",
     "sinon": "^1.17.7",
     "ts-node": "^2.1.0",
-    "tslint": "^4.5.1"
+    "tslint": "^4.5.1",
   },
   "main": "build/dist.js",
   "types": "build/dist.d.ts",
   "scripts": {
     "build": "gulp build",
-    "test": "sh ./scripts/test.sh"
+    "test": "node ./scripts/test.js",
+    "tschk": "tsc --project . --noEmit --pretty --noUnusedLocals",
+    "tschk:watch": "npm run tschk -- --watch",
   },
   "license": "MIT"
 }

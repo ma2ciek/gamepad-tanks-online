@@ -3,6 +3,7 @@ const gulp = require( 'gulp' );
 const tslint = require( 'gulp-tslint' );
 const del = require( 'del' );
 const runTests = require( './scripts/runTests' );
+const cp = require( 'child_process' );
 
 // Create FuseBox Instance
 const fuseBox = new fsbx.FuseBox( {
@@ -13,8 +14,7 @@ const fuseBox = new fsbx.FuseBox( {
 	},
 	cache: true,
 	outFile: "./build/dist.js",
-	watch: true,
-	plugins: [ fsbx.TypeScriptHelpers ]
+	plugins: [ fsbx.TypeScriptHelpers ],
 } );
 
 gulp.task( 'lint', () =>
@@ -28,8 +28,7 @@ gulp.task( 'lint', () =>
 );
 
 gulp.task( "build", () => {
-	return del( 'build/**/**' )
-		.then( () => fuseBox.bundle( ">PadManager.ts" ) );
+	return fuseBox.bundle( ">game.ts" );
 } );
 
 gulp.task( 'test', () => {
@@ -41,5 +40,12 @@ gulp.task( 'default', [ 'build', 'lint', 'watch' ] );
 gulp.task( 'watch', () => {
 	return gulp.watch( [
 		'src/**/**', 'test/**/**',
-	], [ 'build', 'lint' ] )
+	], [
+		'build',
+		'lint',
+	] )
+} );
+
+gulp.task( 'ts-check', () => {
+	return cp.execSync( 'tsc', '--project . --noEmit --pretty --noUnusedLocals' );
 } );

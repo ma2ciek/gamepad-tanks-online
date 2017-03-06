@@ -6,6 +6,10 @@
             "es7",
             "dom"
         ],
-        "target": "es6"
+        "target": "es6",
+        "noImplicitAny": true,
+		"strictNullChecks": true,
+		"noImplicitThis": true,
+		"noUnusedLocals": true
     }
 }
