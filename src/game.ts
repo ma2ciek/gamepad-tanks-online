@@ -1,50 +1,40 @@
 import BulletManager from './BulletManager';
+import PadController from './PadController';
 import PlayerManager from './PlayerManager';
-// import CollisionManager from './CollisionManager';
+import Renderer from './Renderer';
+import Scene from './Scene';
+import SoldierManager from './SoldierManager';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
 const playerManager = new PlayerManager();
-const bulletManager = new BulletManager();
-// const collisionManager = new CollisionManager();
-
 playerManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
 
-function loop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+const bulletManager = new BulletManager();
 
-    playerManager.updatePads();
+const soldierManager = new SoldierManager();
+soldierManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
+soldierManager.track(playerManager);
+soldierManager.addSoldiers([
+    { x: 200, y: 200 },
+]);
 
-    for (const player of playerManager.getPlayers()) {
-        player.move();
-        player.draw(ctx);
-    }
+const controller = new PadController(playerManager);
 
-    for (const bullet of bulletManager.getBullets()) {
-        bullet.move();
-        bullet.draw(ctx);
-    }
+const scene = new Scene();
+scene.add(
+    playerManager,
+    bulletManager,
+    soldierManager,
+);
 
-    // for (const bullet of bulletManager.getBullets()) {
-    //     for (const player of playerManager.getPlayers()) {
-    //         const collision = collisionManager.checkCollisions(bullet, player);
+playerManager.playerEmitter.subscribe(player => scene.centerAt(player));
 
-    //         if (collision) {
-    //             player.handleHit(bullet);
-    //         }
-    //     }
-    // }
+const renderer = new Renderer({
+    scene,
+    controller,
+    ctx,
+});
 
-    requestAnimationFrame(loop);
-}
-
-function updateScreen() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
-window.onresize = updateScreen;
-
-updateScreen();
-loop();
+renderer.render();

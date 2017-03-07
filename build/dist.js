@@ -5,42 +5,32 @@ ___scope___.file("game.js", function(exports, require, module, __filename, __dir
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const BulletManager_1 = require("./BulletManager");
+const PadController_1 = require("./PadController");
 const PlayerManager_1 = require("./PlayerManager");
-// import CollisionManager from './CollisionManager';
+const Renderer_1 = require("./Renderer");
+const Scene_1 = require("./Scene");
+const SoldierManager_1 = require("./SoldierManager");
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const playerManager = new PlayerManager_1.default();
-const bulletManager = new BulletManager_1.default();
-// const collisionManager = new CollisionManager();
 playerManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
-function loop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    playerManager.updatePads();
-    for (const player of playerManager.getPlayers()) {
-        player.move();
-        player.draw(ctx);
-    }
-    for (const bullet of bulletManager.getBullets()) {
-        bullet.move();
-        bullet.draw(ctx);
-    }
-    // for (const bullet of bulletManager.getBullets()) {
-    //     for (const player of playerManager.getPlayers()) {
-    //         const collision = collisionManager.checkCollisions(bullet, player);
-    //         if (collision) {
-    //             player.handleHit(bullet);
-    //         }
-    //     }
-    // }
-    requestAnimationFrame(loop);
-}
-function updateScreen() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.onresize = updateScreen;
-updateScreen();
-loop();
+const bulletManager = new BulletManager_1.default();
+const soldierManager = new SoldierManager_1.default();
+soldierManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
+soldierManager.track(playerManager);
+soldierManager.addSoldiers([
+    { x: 200, y: 200 },
+]);
+const controller = new PadController_1.default(playerManager);
+const scene = new Scene_1.default();
+scene.add(playerManager, bulletManager, soldierManager);
+playerManager.playerEmitter.subscribe(player => scene.centerAt(player));
+const renderer = new Renderer_1.default({
+    scene,
+    controller,
+    ctx,
+});
+renderer.render();
 //# sourceMappingURL=game.js.map
 });
 ___scope___.file("BulletManager.js", function(exports, require, module, __filename, __dirname){ 
@@ -51,15 +41,34 @@ class BulletManager {
     constructor() {
         this.bullets = [];
     }
-    getBullets() {
-        return this.bullets;
+    [Symbol.iterator]() {
+        return this.bullets[Symbol.iterator]();
     }
     add(bullet) {
         this.bullets.push(bullet);
+        bullet.destroyEmitter.subscribe(() => {
+            this.bullets = this.bullets.filter(b => b !== bullet);
+        });
     }
 }
 exports.default = BulletManager;
 //# sourceMappingURL=BulletManager.js.map
+});
+___scope___.file("PadController.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class PadController {
+    // TODO.
+    constructor(updater) {
+        this.updater = updater;
+    }
+    update() {
+        this.updater.updatePads();
+    }
+}
+exports.default = PadController;
+//# sourceMappingURL=PadController.js.map
 });
 ___scope___.file("PlayerManager.js", function(exports, require, module, __filename, __dirname){ 
 
@@ -70,7 +79,11 @@ const Player_1 = require("./Player");
 class PlayerManager {
     constructor() {
         this.bulletEmitter = new Emitter_1.default();
+        this.playerEmitter = new Emitter_1.default();
         this.players = [];
+    }
+    [Symbol.iterator]() {
+        return this.players[Symbol.iterator]();
     }
     updatePads() {
         const pads = navigator.getGamepads();
@@ -84,9 +97,6 @@ class PlayerManager {
             this.players[pad.index].update(pad);
         }
     }
-    getPlayers() {
-        return this.players;
-    }
     createPlayer(pad) {
         const player = new Player_1.default();
         this.players[pad.index] = player;
@@ -96,6 +106,7 @@ class PlayerManager {
         player.deathEmitter.subscribe(() => {
             this.players = this.players.filter(p => p !== player);
         });
+        this.playerEmitter.emit(player);
     }
 }
 exports.default = PlayerManager;
@@ -137,11 +148,16 @@ class Player {
     constructor() {
         this.shotEmitter = new Emitter_1.default();
         this.deathEmitter = new Emitter_1.default();
-        this.hp = 100;
+        this.type = 'player';
         this.kills = 0;
         this.deaths = 0;
+        this.radius = 50;
+        this.hp = 100;
         this.lastShotTimestamp = Date.now();
         this.tank = new Tank_1.default(E_100_1.default);
+    }
+    get position() {
+        return this.tank.getPosition();
     }
     update(pad) {
         this.pad = pad;
@@ -169,8 +185,8 @@ class Player {
     draw(ctx) {
         this.tank.draw(ctx);
     }
-    handleHit(bullet) {
-        if (bullet.owner === this) {
+    handleHit(object) {
+        if (object.type !== 'bullet' || object.owner === this) {
             return;
         }
         this.hp -= 10;
@@ -196,13 +212,16 @@ ___scope___.file("Bullet.js", function(exports, require, module, __filename, __d
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Emitter_1 = require("./Emitter");
 const utils_1 = require("./utils");
 class Bullet {
     constructor(position, velocity, owner) {
         this.position = position;
         this.velocity = velocity;
         this.owner = owner;
+        this.destroyEmitter = new Emitter_1.default();
         this.radius = 3;
+        this.type = 'bullet';
     }
     draw(ctx) {
         utils_1.drawArc(ctx, this.position.x, this.position.y, this.radius, 'black');
@@ -210,6 +229,9 @@ class Bullet {
     move() {
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
+    }
+    handleHit() {
+        this.destroyEmitter.emit(this);
     }
 }
 exports.default = Bullet;
@@ -226,14 +248,14 @@ function drawArc(ctx, x, y, r, color) {
     ctx.fill();
 }
 exports.drawArc = drawArc;
-function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0, center, }) {
+function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0, center, zoom = 1, }) {
     ctx.save();
     if (!center) {
         center = { x: 0, y: 0 };
     }
     ctx.translate(canvasOffsetX, canvasOffsetY);
     ctx.rotate(angle);
-    ctx.drawImage(image, x, y, width, height, -width / 2, -height / 2, width, height);
+    ctx.drawImage(image, x, y, width, height, -width / 2 * zoom, -height / 2 * zoom, width * zoom, height * zoom);
     ctx.restore();
 }
 exports.drawImage = drawImage;
@@ -274,6 +296,18 @@ function normalizeAngle(angle) {
     return angle;
 }
 exports.normalizeAngle = normalizeAngle;
+function joinIterators(...iterators) {
+    return {
+        *[Symbol.iterator]() {
+            for (const iterator of iterators) {
+                for (const element of iterator) {
+                    yield element;
+                }
+            }
+        },
+    };
+}
+exports.joinIterators = joinIterators;
 //# sourceMappingURL=utils.js.map
 });
 ___scope___.file("Tank.js", function(exports, require, module, __filename, __dirname){ 
@@ -288,9 +322,8 @@ class Tank {
         this.tankAngle = Math.atan2(0, 0);
         this.position = new Vector_1.default(Math.random() * 100, Math.random() * 100);
         this.model = model;
-        window.gunRect = model.gun;
-        window.gunCenter = model.gunCenter;
-        utils_1.loadImage(model.imgUrl).then(image => this.image = image);
+        utils_1.loadImage(model.url)
+            .then(image => this.image = image);
     }
     draw(ctx) {
         if (!this.image) {
@@ -301,15 +334,16 @@ class Tank {
     }
     move(moveVector) {
         const moveAngle = Vector_1.default.toAngle(moveVector);
-        const multiplier = Math.abs(Math.cos(moveAngle - this.tankAngle) * this.model.tankSpeed);
-        moveVector = Vector_1.default.times(moveVector, multiplier);
+        const absMoveForce = Math.abs(Math.cos(moveAngle - this.tankAngle) * this.model.tankSpeed);
+        const newMoveVector = Vector_1.default.times(moveVector, absMoveForce);
         if (moveVector.x !== 0 || moveVector.y !== 0) {
-            this.rotateTank(moveAngle);
+            this.rotateTank(moveAngle, Vector_1.default.getSize(moveVector));
         }
-        this.position = Vector_1.default.add(this.position, moveVector);
+        this.position = Vector_1.default.add(this.position, newMoveVector);
     }
-    rotateTank(angle) {
-        const movement = Math.min(this.model.tankRotationSpeed, Math.abs(this.tankAngle - angle));
+    rotateTank(angle, multiplier) {
+        const angleDiff = Math.abs(this.tankAngle - angle);
+        const movement = Math.min(this.model.tankRotationSpeed * multiplier, angleDiff);
         if ((this.tankAngle - angle > 0 && this.tankAngle - angle < Math.PI) ||
             this.tankAngle - angle < -Math.PI) {
             this.tankAngle -= movement;
@@ -422,8 +456,11 @@ class Vector {
         return Math.pow((v1.x - v2.x), 2) + Math.pow((v1.y - v2.y), 2);
     }
     static toSize(v, size) {
-        const times = size / Math.sqrt(v.x * v.x + v.y * v.y);
+        const times = size / Math.sqrt(v.x * v.x + v.y * v.y) || 0;
         return Vector.times(v, times);
+    }
+    static getSize(v) {
+        return Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.y, 2));
     }
     static fromAngle(angle, radius) {
         return new Vector(Math.cos(angle + Math.PI / 2) * radius, Math.sin(angle + Math.PI / 2) * radius);
@@ -431,6 +468,9 @@ class Vector {
     static toAngle(v) {
         const angle = Math.atan2(v.y, v.x) - Math.PI / 2;
         return utils_1.normalizeAngle(angle);
+    }
+    static fromDiff(from, to) {
+        return new Vector(to.x - from.x, to.y - from.y);
     }
 }
 exports.default = Vector;
@@ -442,19 +482,371 @@ ___scope___.file("tanks/E-100.js", function(exports, require, module, __filename
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = {
-    imgUrl: '../images/tanks/E-100_strip2.png',
+    url: '../images/tanks/E-100_strip2.png',
     tank: { x: 0, y: 0, width: 100, height: 170 },
     gun: { x: 95, y: 10, width: 100, height: 200 },
     tankCenter: { x: 50, y: 85 },
     gunCenter: { x: 145, y: 115 },
     gunSize: 70,
-    tankSpeed: 5,
-    tankRotationSpeed: Math.PI / 20,
-    gunRotationSpeed: Math.PI / 30,
+    tankSpeed: 3,
+    tankRotationSpeed: Math.PI / 15,
+    gunRotationSpeed: Math.PI / 20,
     bulletSpeed: 20,
     shotFrequency: 200,
 };
 //# sourceMappingURL=E-100.js.map
+});
+___scope___.file("Renderer.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class Renderer {
+    constructor({ scene, controller, ctx }) {
+        this.render = () => {
+            this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+            this.controller.update();
+            this.scene.move();
+            this.scene.render(this.ctx);
+            requestAnimationFrame(this.render);
+        };
+        this.scene = scene;
+        this.controller = controller;
+        this.ctx = ctx;
+        this.updateScreen();
+        window.onresize = () => this.updateScreen();
+    }
+    updateScreen() {
+        this.ctx.canvas.width = window.innerWidth;
+        this.ctx.canvas.height = window.innerHeight;
+    }
+}
+exports.default = Renderer;
+//# sourceMappingURL=Renderer.js.map
+});
+___scope___.file("Scene.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const CollisionManager_1 = require("./CollisionManager");
+class Scene {
+    constructor() {
+        this.collisionManager = new CollisionManager_1.default();
+        this.iterables = [];
+    }
+    add(...iterables) {
+        for (const iterable of iterables) {
+            this.iterables.push(iterable);
+        }
+        this.collisionManager.add(...iterables);
+    }
+    render(ctx) {
+        ctx.save();
+        ctx.translate(-this.centeredObject.position.x + ctx.canvas.width / 2, -this.centeredObject.position.y + ctx.canvas.height / 2);
+        for (const iterable of this.iterables) {
+            for (const element of iterable) {
+                element.move();
+                element.draw(ctx);
+            }
+        }
+        ctx.restore();
+    }
+    move() {
+        for (const iterable of this.iterables) {
+            for (const element of iterable) {
+                element.move();
+            }
+        }
+        this.collisionManager.checkCollisions();
+    }
+    centerAt(object) {
+        this.centeredObject = object;
+    }
+}
+exports.default = Scene;
+//# sourceMappingURL=Scene.js.map
+});
+___scope___.file("CollisionManager.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Vector_1 = require("./Vector");
+class CollisionManager {
+    constructor() {
+        this.objectIterators = [];
+    }
+    add(...objects) {
+        this.objectIterators.push(...objects);
+    }
+    checkCollisions() {
+        for (let i = 0; i < this.objectIterators.length; i++) {
+            for (let j = 0; j < i; j++) {
+                for (const o1 of this.objectIterators[i]) {
+                    for (const o2 of this.objectIterators[j]) {
+                        const collision = this.checkCollision(o1, o2);
+                        if (collision) {
+                            o1.handleHit(o2);
+                            o2.handleHit(o1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    checkCollision(o1, o2) {
+        return Math.pow((o1.radius + o2.radius), 2) > Vector_1.default.squaredDistance(o1.position, o2.position);
+    }
+}
+exports.default = CollisionManager;
+//# sourceMappingURL=CollisionManager.js.map
+});
+___scope___.file("SoldierManager.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Emitter_1 = require("./Emitter");
+const Soldier_1 = require("./Soldier");
+class SoldierManager {
+    constructor() {
+        this.bulletEmitter = new Emitter_1.default();
+        this.soldiers = [];
+    }
+    [Symbol.iterator]() {
+        return this.soldiers[Symbol.iterator]();
+    }
+    addSoldiers(startPositions) {
+        for (const position of startPositions) {
+            const soldier = new Soldier_1.default(position);
+            soldier.track(this.trackedObjects);
+            soldier.shotEmitter.subscribe(bullet => this.bulletEmitter.emit(bullet));
+            soldier.deathEmitter.subscribe(() => {
+                this.soldiers = this.soldiers.filter(s => s !== soldier);
+            });
+            this.soldiers.push(soldier);
+        }
+    }
+    track(manager) {
+        this.trackedObjects = manager;
+    }
+}
+exports.default = SoldierManager;
+//# sourceMappingURL=SoldierManager.js.map
+});
+___scope___.file("Soldier.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Bullet_1 = require("./Bullet");
+const Emitter_1 = require("./Emitter");
+const Sprite_1 = require("./Sprite");
+const TimeController_1 = require("./TimeController");
+const Vector_1 = require("./Vector");
+const URL = '../images/soldier/handgun/';
+class Soldier {
+    constructor(startPosition) {
+        this.shotEmitter = new Emitter_1.default();
+        this.deathEmitter = new Emitter_1.default();
+        this.radius = 30;
+        this.type = 'soldier';
+        this.hp = 100;
+        this.ammo = 6;
+        this.MAGAZINE_SIZE = 6;
+        this.speed = 2;
+        this.angle = 0;
+        this.turningLeft = Math.random() < 0.5;
+        this.shotTimeController = new TimeController_1.default(1000);
+        this.handgunSprites = {
+            move: new Sprite_1.default({
+                url: URL + 'move.png', frameDuration: 50,
+                numberOfFrames: 20, zoom: 0.25,
+            }),
+            idle: new Sprite_1.default({
+                url: URL + 'idle.png', frameDuration: 50,
+                numberOfFrames: 20, zoom: 0.25,
+            }),
+            distanceAttack: new Sprite_1.default({
+                url: URL + 'distanceAttack.png', frameDuration: 50,
+                numberOfFrames: 3, zoom: 0.25, once: true,
+            }),
+            meleeAtack: new Sprite_1.default({
+                url: URL + 'meleeAttack.png', frameDuration: 50,
+                numberOfFrames: 10, zoom: 0.25,
+            }),
+            reload: new Sprite_1.default({
+                url: URL + 'reload.png', frameDuration: 50,
+                numberOfFrames: 15, zoom: 0.25, once: true,
+            }),
+        };
+        this.currentSprite = this.handgunSprites.idle;
+        this.position = startPosition;
+    }
+    draw(ctx) {
+        this.currentSprite.draw(ctx, this.position, this.angle);
+    }
+    track(iterable) {
+        this.trackedObjects = iterable;
+    }
+    handleHit(object) {
+        if (object.type !== 'bullet' || object.owner === this) {
+            return;
+        }
+        this.hp -= 10;
+        if (this.hp <= 0) {
+            this.deathEmitter.emit({});
+        }
+    }
+    move() {
+        // TODO: track best object, not first
+        const object = Array.from(this.trackedObjects)[0];
+        if (!object) {
+            return;
+        }
+        const diffVector = Vector_1.default.fromDiff(this.position, object.position);
+        const distance = Vector_1.default.getSize(diffVector);
+        if (distance > 1000) {
+            return;
+        }
+        // TODO: Improve this part.
+        if (this.currentSprite.hasToFinish()) {
+            return;
+        }
+        let moveVector;
+        if (distance > 400) {
+            moveVector = Vector_1.default.toSize(diffVector, Math.min(this.speed, distance));
+            this.setSprite(this.handgunSprites.move);
+        }
+        else if (distance > 300) {
+            if (this.hasToReload()) {
+                this.reload();
+                return;
+            }
+            if (this.shotTimeController.can()) {
+                this.shot(object);
+                return;
+            }
+            if (Math.random() < 0.02) {
+                this.turningLeft = !this.turningLeft;
+            }
+            if (this.turningLeft) {
+                moveVector = Vector_1.default.toSize({ x: -diffVector.y, y: diffVector.x }, this.speed / 2);
+            }
+            else {
+                moveVector = Vector_1.default.toSize({ x: diffVector.y, y: -diffVector.x }, this.speed / 2);
+            }
+            this.setSprite(this.handgunSprites.idle);
+        }
+        else {
+            moveVector = Vector_1.default.toSize({ x: -diffVector.x, y: -diffVector.y }, this.speed);
+            this.setSprite(this.handgunSprites.move);
+        }
+        this.position = Vector_1.default.add(this.position, moveVector);
+        this.angle = Vector_1.default.toAngle(diffVector) + Math.PI / 2;
+    }
+    hasToReload() {
+        return this.ammo === 0;
+    }
+    reload() {
+        this.ammo = this.MAGAZINE_SIZE;
+        this.setSprite(this.handgunSprites.reload);
+    }
+    shot(object) {
+        this.setSprite(this.handgunSprites.distanceAttack);
+        this.ammo--;
+        const velocity = Vector_1.default.toSize(Vector_1.default.fromDiff(this.position, object.position), 5);
+        const translation = Vector_1.default.toSize(velocity, 40);
+        const spriteShotModifier = Vector_1.default.add(translation, { x: -translation.y * 0.4, y: translation.x * 0.4 });
+        const startPosition = Vector_1.default.add(this.position, spriteShotModifier);
+        const bullet = new Bullet_1.default(startPosition, velocity, this);
+        this.shotEmitter.emit(bullet);
+    }
+    setSprite(sprite) {
+        if (this.currentSprite === sprite) {
+            return;
+        }
+        this.currentSprite = sprite;
+        this.currentSprite.reset();
+    }
+}
+exports.default = Soldier;
+//# sourceMappingURL=Soldier.js.map
+});
+___scope___.file("Sprite.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const utils_1 = require("./utils");
+class Sprite {
+    constructor(options) {
+        this.lastTimestamp = 0;
+        this.currentFrameIndex = 0;
+        this.frameDuration = options.frameDuration;
+        this.numberOfFrames = options.numberOfFrames;
+        this.zoom = options.zoom || 1;
+        this.once = !!options.once;
+        utils_1.loadImage(options.url).then(image => {
+            this.image = image;
+            this.frameWidth = image.naturalWidth / options.numberOfFrames;
+            this.frameHeight = image.height;
+        });
+    }
+    reset() {
+        this.currentFrameIndex = 0;
+    }
+    hasToFinish() {
+        return !this.isLastFrame() && this.once;
+    }
+    isLastFrame() {
+        return this.currentFrameIndex === this.numberOfFrames - 1;
+    }
+    draw(ctx, position, angle) {
+        if (!this.image) {
+            return;
+        }
+        if (Date.now() >= this.lastTimestamp + this.frameDuration) {
+            this.nextFrame();
+            this.lastTimestamp = Date.now();
+        }
+        utils_1.drawImage({
+            ctx,
+            angle,
+            width: this.frameWidth,
+            height: this.frameHeight,
+            canvasOffsetX: position.x,
+            canvasOffsetY: position.y,
+            image: this.image,
+            x: this.frameWidth * this.currentFrameIndex,
+            y: 0,
+            zoom: this.zoom,
+        });
+    }
+    nextFrame() {
+        if (!this.isLastFrame() || !this.once) {
+            this.currentFrameIndex = (this.currentFrameIndex + 1) % this.numberOfFrames;
+        }
+    }
+}
+exports.default = Sprite;
+//# sourceMappingURL=Sprite.js.map
+});
+___scope___.file("TimeController.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class TimeController {
+    constructor(debounceTime) {
+        this.lastTimestamp = 0;
+        this.debounceTime = 0;
+        this.debounceTime = debounceTime;
+    }
+    can() {
+        const availible = Date.now() > this.debounceTime + this.lastTimestamp;
+        if (availible) {
+            this.lastTimestamp = Date.now();
+        }
+        return availible;
+    }
+}
+exports.default = TimeController;
+//# sourceMappingURL=TimeController.js.map
 });
 });
 

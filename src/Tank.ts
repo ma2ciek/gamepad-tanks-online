@@ -2,7 +2,7 @@ import { drawImage, drawRect, loadImage, normalizeAngle } from './utils';
 import Vector from './Vector';
 
 export interface ITankModel {
-    imgUrl: string;
+    url: string;
     tank: IRect;
     gun: IRect;
     tankCenter: Vector;
@@ -35,10 +35,8 @@ export default class Tank {
     constructor(model: ITankModel) {
         this.model = model;
 
-        (window as any).gunRect = model.gun;
-        (window as any).gunCenter = model.gunCenter;
-
-        loadImage(model.imgUrl).then(image => this.image = image);
+        loadImage(model.url)
+            .then(image => this.image = image);
     }
 
     public draw(ctx: CanvasRenderingContext2D) {
@@ -52,20 +50,20 @@ export default class Tank {
 
     public move(moveVector: Vector) {
         const moveAngle = Vector.toAngle(moveVector);
+        const absMoveForce = Math.abs(Math.cos(moveAngle - this.tankAngle) * this.model.tankSpeed);
 
-        const multiplier = Math.abs(Math.cos(moveAngle - this.tankAngle) * this.model.tankSpeed);
-
-        moveVector = Vector.times(moveVector, multiplier);
+        const newMoveVector = Vector.times(moveVector, absMoveForce);
 
         if (moveVector.x !== 0 || moveVector.y !== 0) {
-            this.rotateTank(moveAngle);
+            this.rotateTank(moveAngle, Vector.getSize(moveVector));
         }
 
-        this.position = Vector.add(this.position, moveVector);
+        this.position = Vector.add(this.position, newMoveVector);
     }
 
-    public rotateTank(angle: number) {
-        const movement = Math.min(this.model.tankRotationSpeed, Math.abs(this.tankAngle - angle));
+    public rotateTank(angle: number, multiplier: number) {
+        const angleDiff = Math.abs(this.tankAngle - angle);
+        const movement = Math.min(this.model.tankRotationSpeed * multiplier, angleDiff);
 
         if ((this.tankAngle - angle > 0 && this.tankAngle - angle < Math.PI) ||
             this.tankAngle - angle < -Math.PI) {

@@ -24,8 +24,12 @@ export default class Vector {
     }
 
     public static toSize(v: Vector, size: number) {
-        const times = size / Math.sqrt(v.x * v.x + v.y * v.y);
+        const times = size / Math.sqrt(v.x * v.x + v.y * v.y) || 0;
         return Vector.times(v, times);
+    }
+
+    public static getSize(v: Vector) {
+        return Math.sqrt(v.x ** 2 + v.y ** 2);
     }
 
     public static fromAngle(angle: number, radius: number) {
@@ -38,6 +42,10 @@ export default class Vector {
     public static toAngle(v: Vector) {
         const angle = Math.atan2(v.y, v.x) - Math.PI / 2;
         return normalizeAngle(angle);
+    }
+
+    public static fromDiff(from: Vector, to: Vector) {
+        return new Vector(to.x - from.x, to.y - from.y);
     }
 
     constructor(

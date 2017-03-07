@@ -6,8 +6,12 @@ export function drawArc(ctx: CanvasRenderingContext2D, x: number, y: number, r: 
 }
 
 export function drawImage({
-    ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0,
+    ctx, image, x, y,
+    width, height,
+    canvasOffsetX, canvasOffsetY,
+    angle = 0,
     center,
+    zoom = 1,
 }: IImageDrawingParams) {
     ctx.save();
 
@@ -21,7 +25,7 @@ export function drawImage({
     ctx.drawImage(
         image,
         x, y, width, height,
-        -width / 2, -height / 2, width, height,
+        -width / 2 * zoom, -height / 2 * zoom, width * zoom, height * zoom,
     );
 
     ctx.restore();
@@ -41,6 +45,7 @@ interface IImageDrawingParams {
         x: number;
         y: number;
     };
+    zoom?: number;
 }
 
 export function loadImage(url: string) {
@@ -53,8 +58,8 @@ export function loadImage(url: string) {
     });
 }
 
-export function createArray(size: number, filler: any) {
-    const arr = new Array(size);
+export function createArray<T>(size: number, filler: T) {
+    const arr = new Array<T>(size);
     for (let i = 0; i < size; i++) {
         arr[i] = filler;
     }
@@ -91,4 +96,17 @@ export function normalizeAngle(angle: number) {
     }
 
     return angle;
+}
+
+export function joinIterators<T, P>(iterators: T, iterator: P): T & P;
+export function joinIterators<T extends object>(...iterators: T[][]) {
+    return {
+        *[Symbol.iterator]() {
+            for (const iterator of iterators) {
+                for (const element of iterator) {
+                    yield element;
+                }
+            }
+        },
+    };
 }

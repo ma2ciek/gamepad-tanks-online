@@ -4,8 +4,13 @@ import Player from './Player';
 
 export default class PlayerManager {
     public bulletEmitter = new Emitter<Bullet>();
+    public playerEmitter = new Emitter<Player>();
 
     private players: Player[] = [];
+
+    public [Symbol.iterator]() {
+        return this.players[Symbol.iterator]();
+    }
 
     public updatePads() {
         const pads = navigator.getGamepads();
@@ -23,10 +28,6 @@ export default class PlayerManager {
         }
     }
 
-    public getPlayers() {
-        return this.players;
-    }
-
     private createPlayer(pad: Gamepad) {
         const player = new Player();
         this.players[pad.index] = player;
@@ -38,5 +39,7 @@ export default class PlayerManager {
         player.deathEmitter.subscribe(() => {
             this.players = this.players.filter(p => p !== player);
         });
+
+        this.playerEmitter.emit(player);
     }
 }

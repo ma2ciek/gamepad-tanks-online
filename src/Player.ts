@@ -1,5 +1,6 @@
 import Bullet from './Bullet';
 import Emitter from './Emitter';
+import IGameObject from './IGameObject';
 import Tank from './Tank';
 import E_100 from './tanks/E-100';
 import Vector from './Vector';
@@ -10,15 +11,21 @@ const colors = [
     'blue',
 ];
 
-export default class Player {
+export default class Player implements IGameObject {
     public shotEmitter = new Emitter<Bullet>();
     public deathEmitter = new Emitter();
+    public type = 'player';
 
-    public hp = 100;
+    public get position() {
+        return this.tank.getPosition();
+    }
+
     public kills = 0;
     public deaths = 0;
+    public radius = 50;
 
     public color: string;
+    private hp = 100;
 
     private pad: Gamepad;
 
@@ -66,8 +73,8 @@ export default class Player {
         this.tank.draw(ctx);
     }
 
-    public handleHit(bullet: Bullet) {
-        if (bullet.owner === this) {
+    public handleHit(object: IGameObject) {
+        if (object.type !== 'bullet' || object.owner === this) {
             return;
         }
 
