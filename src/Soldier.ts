@@ -82,14 +82,13 @@ export default class Soldier implements IGameObject {
     }
 
     public move() {
-        // TODO: track best object, not first
-        const object = Array.from(this.trackedObjects)[0];
+        const opponent = this.findBestOpponent();
 
-        if (!object) {
+        if (!opponent) {
             return;
         }
 
-        const diffVector = Vector.fromDiff(this.position, object.position);
+        const diffVector = Vector.fromDiff(this.position, opponent.position);
         const distance = Vector.getSize(diffVector);
 
         if (distance > 1000) {
@@ -113,7 +112,7 @@ export default class Soldier implements IGameObject {
             }
 
             if (this.shotTimeController.can()) {
-                this.shot(object);
+                this.shot(opponent);
                 return;
             }
 
@@ -136,6 +135,28 @@ export default class Soldier implements IGameObject {
 
         this.position = Vector.add(this.position, moveVector);
         this.angle = Vector.toAngle(diffVector) + Math.PI / 2;
+    }
+
+    private findBestOpponent() {
+        const opponents = Array.from(this.trackedObjects);
+
+        let bestOpponent = opponents[0];
+
+        if (!bestOpponent) {
+            return;
+        }
+
+        let bestDistance = Vector.squaredDistance(opponents[0].position, this.position);
+
+        for (const opponent of opponents.slice(1)) {
+            const distance = Vector.squaredDistance(opponent.position, this.position);
+            if (distance < bestDistance) {
+                bestOpponent = opponent;
+                bestDistance = distance;
+            }
+        }
+
+        return bestOpponent;
     }
 
     private hasToReload() {

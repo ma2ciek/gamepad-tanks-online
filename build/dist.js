@@ -4,14 +4,14 @@ ___scope___.file("game.js", function(exports, require, module, __filename, __dir
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const BackgroundManager_1 = require("./BackgroundManager");
 const BulletManager_1 = require("./BulletManager");
+const ClassicBackground_1 = require("./ClassicBackground");
 const PadController_1 = require("./PadController");
 const PlayerManager_1 = require("./PlayerManager");
 const Renderer_1 = require("./Renderer");
 const Scene_1 = require("./Scene");
 const SoldierManager_1 = require("./SoldierManager");
-const BackgroundManager_1 = require("./BackgroundManager");
-const ClassicBackground_1 = require("./ClassicBackground");
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const playerManager = new PlayerManager_1.default();
@@ -38,6 +38,25 @@ const renderer = new Renderer_1.default({
 renderer.render();
 //# sourceMappingURL=game.js.map
 });
+___scope___.file("BackgroundManager.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class BackgroundManager {
+    constructor() {
+        this.objectsCollide = false;
+        this.backgrounds = [];
+    }
+    [Symbol.iterator]() {
+        return this.backgrounds[Symbol.iterator]();
+    }
+    add(bg) {
+        this.backgrounds.push(bg);
+    }
+}
+exports.default = BackgroundManager;
+//# sourceMappingURL=BackgroundManager.js.map
+});
 ___scope___.file("BulletManager.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
@@ -59,6 +78,114 @@ class BulletManager {
 }
 exports.default = BulletManager;
 //# sourceMappingURL=BulletManager.js.map
+});
+___scope___.file("ClassicBackground.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const utils_1 = require("./utils");
+class ClassicBackground {
+    constructor(colors) {
+        this.colors = colors;
+        this.position = { x: 0, y: 0 };
+        this.type = 'background';
+    }
+    draw(ctx, { center }) {
+        const tileSize = 100;
+        const startX = Math.floor((center.x - ctx.canvas.width / 2) / tileSize) * tileSize;
+        const startY = Math.floor((center.y - ctx.canvas.height / 2) / tileSize) * tileSize;
+        for (let x = startX; x < center.x + ctx.canvas.width / 2; x += tileSize) {
+            for (let y = startY; y < center.y + ctx.canvas.height / 2; y += tileSize) {
+                // TODO: this.colors.length
+                ctx.fillStyle = this.colors[utils_1.mod(x + y, tileSize * 2) / tileSize];
+                ctx.fillRect(x, y, tileSize + 1, tileSize + 1);
+            }
+        }
+    }
+    move() { }
+}
+exports.default = ClassicBackground;
+//# sourceMappingURL=ClassicBackground.js.map
+});
+___scope___.file("utils.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function drawArc(ctx, x, y, r, color) {
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.fill();
+}
+exports.drawArc = drawArc;
+function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0, center, zoom = 1, }) {
+    ctx.save();
+    if (!center) {
+        center = { x: 0, y: 0 };
+    }
+    ctx.translate(canvasOffsetX, canvasOffsetY);
+    ctx.rotate(angle);
+    ctx.drawImage(image, x, y, width, height, -width / 2 * zoom, -height / 2 * zoom, width * zoom, height * zoom);
+    ctx.restore();
+}
+exports.drawImage = drawImage;
+function loadImage(url) {
+    return new Promise((res, rej) => {
+        const image = new Image();
+        image.onload = () => res(image);
+        image.onerror = rej;
+        image.onabort = rej;
+        image.src = url;
+    });
+}
+exports.loadImage = loadImage;
+function createArray(size, filler) {
+    const arr = new Array(size);
+    for (let i = 0; i < size; i++) {
+        arr[i] = filler;
+    }
+    return arr;
+}
+exports.createArray = createArray;
+function drawRect({ ctx, x, y, width, height, strokeStyle, strokeWidth }) {
+    if (strokeStyle && strokeWidth) {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = strokeWidth;
+        ctx.strokeRect(x, y, width, height);
+    }
+}
+exports.drawRect = drawRect;
+function normalizeAngle(angle) {
+    angle = angle % (2 * Math.PI);
+    if (angle > Math.PI) {
+        angle -= 2 * Math.PI;
+    }
+    if (angle < -Math.PI) {
+        angle += 2 * Math.PI;
+    }
+    return angle;
+}
+exports.normalizeAngle = normalizeAngle;
+function joinIterators(...iterators) {
+    return {
+        *[Symbol.iterator]() {
+            for (const iterator of iterators) {
+                for (const element of iterator) {
+                    yield element;
+                }
+            }
+        },
+    };
+}
+exports.joinIterators = joinIterators;
+function mod(x, y) {
+    const result = x % y;
+    return (result >= 0) ?
+        result :
+        result + y;
+}
+exports.mod = mod;
+//# sourceMappingURL=utils.js.map
 });
 ___scope___.file("PadController.js", function(exports, require, module, __filename, __dirname){ 
 
@@ -87,33 +214,40 @@ class PlayerManager {
         this.bulletEmitter = new Emitter_1.default();
         this.playerEmitter = new Emitter_1.default();
         this.objectsCollide = true;
-        this.players = [];
+        this.players = {};
     }
-    [Symbol.iterator]() {
-        return this.players[Symbol.iterator]();
+    *[Symbol.iterator]() {
+        const ids = Object.keys(this.players);
+        for (const id of ids) {
+            yield this.players[id];
+        }
     }
     updatePads() {
         const pads = navigator.getGamepads();
-        for (const pad of pads) {
+        Array.from(pads).forEach((pad, index) => {
             if (!pad) {
-                continue;
+                return;
             }
-            if (!this.players[pad.index]) {
-                this.createPlayer(pad);
+            if (!this.players[pad.id]) {
+                this.addPlayer(pad);
             }
-            this.players[pad.index].update(pad);
-        }
+            this.players[pad.id].update(pad);
+        });
+    }
+    addPlayer(pad) {
+        const player = this.createPlayer(pad);
+        this.players[pad.id] = player;
+        this.playerEmitter.emit(player);
     }
     createPlayer(pad) {
-        const player = new Player_1.default();
-        this.players[pad.index] = player;
+        const player = new Player_1.default(pad);
         player.shotEmitter.subscribe(bullet => {
             this.bulletEmitter.emit(bullet);
         });
         player.deathEmitter.subscribe(() => {
-            this.players = this.players.filter(p => p !== player);
+            this.players[pad.id] = this.createPlayer(pad);
         });
-        this.playerEmitter.emit(player);
+        return player;
     }
 }
 exports.default = PlayerManager;
@@ -152,7 +286,7 @@ const colors = [
     'blue',
 ];
 class Player {
-    constructor() {
+    constructor(pad) {
         this.shotEmitter = new Emitter_1.default();
         this.deathEmitter = new Emitter_1.default();
         this.type = 'player';
@@ -161,6 +295,7 @@ class Player {
         this.radius = 50;
         this.hp = 100;
         this.lastShotTimestamp = Date.now();
+        this.pad = pad;
         this.tank = new Tank_1.default(E_100_1.default);
     }
     get position() {
@@ -245,86 +380,6 @@ class Bullet {
 }
 exports.default = Bullet;
 //# sourceMappingURL=Bullet.js.map
-});
-___scope___.file("utils.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function drawArc(ctx, x, y, r, color) {
-    ctx.beginPath();
-    ctx.fillStyle = color;
-    ctx.arc(x, y, r, 0, 2 * Math.PI);
-    ctx.fill();
-}
-exports.drawArc = drawArc;
-function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0, center, zoom = 1, }) {
-    ctx.save();
-    if (!center) {
-        center = { x: 0, y: 0 };
-    }
-    ctx.translate(canvasOffsetX, canvasOffsetY);
-    ctx.rotate(angle);
-    ctx.drawImage(image, x, y, width, height, -width / 2 * zoom, -height / 2 * zoom, width * zoom, height * zoom);
-    ctx.restore();
-}
-exports.drawImage = drawImage;
-function loadImage(url) {
-    return new Promise((res, rej) => {
-        const image = new Image();
-        image.onload = () => res(image);
-        image.onerror = rej;
-        image.onabort = rej;
-        image.src = url;
-    });
-}
-exports.loadImage = loadImage;
-function createArray(size, filler) {
-    const arr = new Array(size);
-    for (let i = 0; i < size; i++) {
-        arr[i] = filler;
-    }
-    return arr;
-}
-exports.createArray = createArray;
-function drawRect({ ctx, x, y, width, height, strokeStyle, strokeWidth }) {
-    if (strokeStyle && strokeWidth) {
-        ctx.strokeStyle = strokeStyle;
-        ctx.lineWidth = strokeWidth;
-        ctx.strokeRect(x, y, width, height);
-    }
-}
-exports.drawRect = drawRect;
-function normalizeAngle(angle) {
-    angle = angle % (2 * Math.PI);
-    if (angle > Math.PI) {
-        angle -= 2 * Math.PI;
-    }
-    if (angle < -Math.PI) {
-        angle += 2 * Math.PI;
-    }
-    return angle;
-}
-exports.normalizeAngle = normalizeAngle;
-function joinIterators(...iterators) {
-    return {
-        *[Symbol.iterator]() {
-            for (const iterator of iterators) {
-                for (const element of iterator) {
-                    yield element;
-                }
-            }
-        },
-    };
-}
-exports.joinIterators = joinIterators;
-function mod(x, y) {
-    const result = x % y;
-    return (result >= 0) ?
-        result :
-        result + y;
-}
-exports.mod = mod;
-//# sourceMappingURL=utils.js.map
 });
 ___scope___.file("Tank.js", function(exports, require, module, __filename, __dirname){ 
 
@@ -715,12 +770,11 @@ class Soldier {
         }
     }
     move() {
-        // TODO: track best object, not first
-        const object = Array.from(this.trackedObjects)[0];
-        if (!object) {
+        const opponent = this.findBestOpponent();
+        if (!opponent) {
             return;
         }
-        const diffVector = Vector_1.default.fromDiff(this.position, object.position);
+        const diffVector = Vector_1.default.fromDiff(this.position, opponent.position);
         const distance = Vector_1.default.getSize(diffVector);
         if (distance > 1000) {
             return;
@@ -740,7 +794,7 @@ class Soldier {
                 return;
             }
             if (this.shotTimeController.can()) {
-                this.shot(object);
+                this.shot(opponent);
                 return;
             }
             if (Math.random() < 0.02) {
@@ -760,6 +814,22 @@ class Soldier {
         }
         this.position = Vector_1.default.add(this.position, moveVector);
         this.angle = Vector_1.default.toAngle(diffVector) + Math.PI / 2;
+    }
+    findBestOpponent() {
+        const opponents = Array.from(this.trackedObjects);
+        let bestOpponent = opponents[0];
+        if (!bestOpponent) {
+            return;
+        }
+        let bestDistance = Vector_1.default.squaredDistance(opponents[0].position, this.position);
+        for (const opponent of opponents.slice(1)) {
+            const distance = Vector_1.default.squaredDistance(opponent.position, this.position);
+            if (distance < bestDistance) {
+                bestOpponent = opponent;
+                bestDistance = distance;
+            }
+        }
+        return bestOpponent;
     }
     hasToReload() {
         return this.ammo === 0;
@@ -867,52 +937,6 @@ class TimeController {
 }
 exports.default = TimeController;
 //# sourceMappingURL=TimeController.js.map
-});
-___scope___.file("BackgroundManager.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class BackgroundManager {
-    constructor() {
-        this.objectsCollide = false;
-        this.backgrounds = [];
-    }
-    [Symbol.iterator]() {
-        return this.backgrounds[Symbol.iterator]();
-    }
-    add(bg) {
-        this.backgrounds.push(bg);
-    }
-}
-exports.default = BackgroundManager;
-//# sourceMappingURL=BackgroundManager.js.map
-});
-___scope___.file("ClassicBackground.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const utils_1 = require("./utils");
-class ClassicBackground {
-    constructor(colors) {
-        this.colors = colors;
-        this.position = { x: 0, y: 0 };
-        this.type = 'background';
-    }
-    draw(ctx, { center }) {
-        const tileSize = 100;
-        const startX = Math.floor((center.x - ctx.canvas.width / 2) / tileSize) * tileSize;
-        const startY = Math.floor((center.y - ctx.canvas.height / 2) / tileSize) * tileSize;
-        for (let x = startX; x < center.x + ctx.canvas.width / 2; x += tileSize) {
-            for (let y = startY; y < center.y + ctx.canvas.height / 2; y += tileSize) {
-                ctx.fillStyle = this.colors[utils_1.mod(x + y, tileSize * 2) / tileSize];
-                ctx.fillRect(x, y, tileSize, tileSize);
-            }
-        }
-    }
-    move() { }
-}
-exports.default = ClassicBackground;
-//# sourceMappingURL=ClassicBackground.js.map
 });
 });
 

@@ -15,8 +15,9 @@ export default class ClassicBackground implements IGameObject {
 
         for (let x = startX; x < center.x + ctx.canvas.width / 2; x += tileSize) {
             for (let y = startY; y < center.y + ctx.canvas.height / 2; y += tileSize) {
+                // TODO: this.colors.length
                 ctx.fillStyle = this.colors[mod(x + y, tileSize * 2) / tileSize];
-                ctx.fillRect(x, y, tileSize, tileSize);
+                ctx.fillRect(x, y, tileSize + 1, tileSize + 1);
             }
         }
     }

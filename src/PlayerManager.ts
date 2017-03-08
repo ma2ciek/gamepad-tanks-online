@@ -7,40 +7,50 @@ export default class PlayerManager implements IGameObjectIterable {
     public bulletEmitter = new Emitter<Bullet>();
     public playerEmitter = new Emitter<Player>();
     public objectsCollide = true;
-    private players: Player[] = [];
+    private players: { [id: string]: Player } = {};
 
-    public [Symbol.iterator]() {
-        return this.players[Symbol.iterator]();
+    public *[Symbol.iterator]() {
+        const ids = Object.keys(this.players);
+
+        for (const id of ids) {
+            yield this.players[id];
+        }
     }
 
     public updatePads() {
         const pads = navigator.getGamepads();
 
-        for (const pad of pads) {
+        Array.from(pads).forEach((pad, index) => {
             if (!pad) {
-                continue;
+                return;
             }
 
-            if (!this.players[pad.index]) {
-                this.createPlayer(pad);
+            if (!this.players[pad.id]) {
+                this.addPlayer(pad);
             }
 
-            this.players[pad.index].update(pad);
-        }
+            this.players[pad.id].update(pad);
+        });
+    }
+
+    private addPlayer(pad: Gamepad) {
+        const player = this.createPlayer(pad);
+        this.players[pad.id] = player;
+
+        this.playerEmitter.emit(player);
     }
 
     private createPlayer(pad: Gamepad) {
-        const player = new Player();
-        this.players[pad.index] = player;
+        const player = new Player(pad);
 
         player.shotEmitter.subscribe(bullet => {
             this.bulletEmitter.emit(bullet);
         });
 
         player.deathEmitter.subscribe(() => {
-            this.players = this.players.filter(p => p !== player);
+            this.players[pad.id] = this.createPlayer(pad);
         });
 
-        this.playerEmitter.emit(player);
+        return player;
     }
 }

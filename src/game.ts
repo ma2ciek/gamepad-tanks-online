@@ -1,11 +1,11 @@
+import BackgroundManager from './BackgroundManager';
 import BulletManager from './BulletManager';
+import ClassicBackground from './ClassicBackground';
 import PadController from './PadController';
 import PlayerManager from './PlayerManager';
 import Renderer from './Renderer';
 import Scene from './Scene';
 import SoldierManager from './SoldierManager';
-import BackgroundManager from './BackgroundManager';
-import ClassicBackground from './ClassicBackground';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;

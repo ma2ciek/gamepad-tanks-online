@@ -33,7 +33,8 @@ export default class Player implements IGameObject {
 
     private lastShotTimestamp = Date.now();
 
-    constructor() {
+    constructor(pad: Gamepad) {
+        this.pad = pad;
         this.tank = new Tank(E_100);
     }
 
