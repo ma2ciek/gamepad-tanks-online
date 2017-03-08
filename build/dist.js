@@ -4,14 +4,15 @@ ___scope___.file("game.js", function(exports, require, module, __filename, __dir
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const BackgroundManager_1 = require("./BackgroundManager");
-const BulletManager_1 = require("./BulletManager");
-const ClassicBackground_1 = require("./ClassicBackground");
-const PadController_1 = require("./PadController");
-const PlayerManager_1 = require("./PlayerManager");
-const Renderer_1 = require("./Renderer");
-const Scene_1 = require("./Scene");
-const SoldierManager_1 = require("./SoldierManager");
+const BackgroundManager_1 = require("./collections/BackgroundManager");
+const BulletManager_1 = require("./collections/BulletManager");
+const PlayerManager_1 = require("./collections/PlayerManager");
+const SoldierManager_1 = require("./collections/SoldierManager");
+const ClassicCamera_1 = require("./engine/ClassicCamera");
+const PadController_1 = require("./engine/PadController");
+const Renderer_1 = require("./engine/Renderer");
+const Scene_1 = require("./engine/Scene");
+const ClassicBackground_1 = require("./models/ClassicBackground");
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const playerManager = new PlayerManager_1.default();
@@ -20,25 +21,24 @@ const bulletManager = new BulletManager_1.default();
 const soldierManager = new SoldierManager_1.default();
 soldierManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
 soldierManager.track(playerManager);
-soldierManager.addSoldiers([
-    { x: 200, y: 200 },
-]);
+window.setInterval(() => soldierManager.addSoldiers([{ x: 200, y: 200 }]), 10 * 1000);
 const backgroundManager = new BackgroundManager_1.default();
 const classicBackground = new ClassicBackground_1.default(['#3a3', '#6a2']);
 backgroundManager.add(classicBackground);
 const controller = new PadController_1.default(playerManager);
-const scene = new Scene_1.default();
-scene.add(backgroundManager, playerManager, bulletManager, soldierManager);
-playerManager.playerEmitter.subscribe(player => scene.centerAt(player));
+const scene = new Scene_1.default(backgroundManager, bulletManager, playerManager, soldierManager);
+const camera = new ClassicCamera_1.default();
+camera.centerAt(playerManager);
 const renderer = new Renderer_1.default({
     scene,
     controller,
     ctx,
+    camera,
 });
 renderer.render();
 //# sourceMappingURL=game.js.map
 });
-___scope___.file("BackgroundManager.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("collections/BackgroundManager.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -57,7 +57,7 @@ class BackgroundManager {
 exports.default = BackgroundManager;
 //# sourceMappingURL=BackgroundManager.js.map
 });
-___scope___.file("BulletManager.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("collections/BulletManager.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -79,35 +79,219 @@ class BulletManager {
 exports.default = BulletManager;
 //# sourceMappingURL=BulletManager.js.map
 });
-___scope___.file("ClassicBackground.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("collections/PlayerManager.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Player_1 = require("../models/Player");
+const Emitter_1 = require("../utils/Emitter");
+class PlayerManager {
+    constructor() {
+        this.bulletEmitter = new Emitter_1.default();
+        this.playerEmitter = new Emitter_1.default();
+        this.objectsCollide = true;
+        this.players = {};
+    }
+    *[Symbol.iterator]() {
+        const ids = Object.keys(this.players);
+        for (const id of ids) {
+            yield this.players[id];
+        }
+    }
+    updatePads() {
+        const pads = navigator.getGamepads();
+        Array.from(pads).forEach((pad, index) => {
+            if (!pad) {
+                return;
+            }
+            if (!this.players[pad.id]) {
+                this.addPlayer(pad);
+            }
+            this.players[pad.id].update(pad);
+        });
+    }
+    addPlayer(pad) {
+        const player = this.createPlayer(pad);
+        this.players[pad.id] = player;
+        this.playerEmitter.emit(player);
+    }
+    createPlayer(pad) {
+        const player = new Player_1.default(pad);
+        player.shotEmitter.subscribe(bullet => {
+            this.bulletEmitter.emit(bullet);
+        });
+        player.deathEmitter.subscribe(() => {
+            this.players[pad.id] = this.createPlayer(pad);
+        });
+        return player;
+    }
+}
+exports.default = PlayerManager;
+//# sourceMappingURL=PlayerManager.js.map
+});
+___scope___.file("models/Player.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const E_100_1 = require("../tank-models/E-100");
+const Emitter_1 = require("../utils/Emitter");
+const Vector_1 = require("../utils/Vector");
+const Bullet_1 = require("./Bullet");
+const Tank_1 = require("./Tank");
+const colors = [
+    'green',
+    'red',
+    'blue',
+];
+class Player {
+    constructor(pad) {
+        this.shotEmitter = new Emitter_1.default();
+        this.deathEmitter = new Emitter_1.default();
+        this.type = 'player';
+        this.kills = 0;
+        this.deaths = 0;
+        this.radius = 50;
+        this.hp = 100;
+        this.lastShotTimestamp = Date.now();
+        this.pad = pad;
+        this.tank = new Tank_1.default(E_100_1.default);
+    }
+    get position() {
+        return this.tank.getPosition();
+    }
+    update(pad) {
+        this.pad = pad;
+        this.color = colors[this.pad.index];
+        const clickedButtons = this.pad.buttons.map(b => b.pressed);
+        clickedButtons.forEach((buttonClicked, i) => {
+            if (clickedButtons[i]) {
+                if (i === 5) {
+                    this.maybeShot();
+                }
+            }
+        });
+    }
+    move() {
+        let moveVector = new Vector_1.default(this.pad.axes[0], this.pad.axes[1]);
+        if (this.pad.buttons[7].pressed) {
+            moveVector = Vector_1.default.times(moveVector, 2);
+        }
+        this.tank.move(moveVector);
+        if (this.pad.axes[2] !== 0 && this.pad.axes[3] !== 0) {
+            const gunVector = new Vector_1.default(this.pad.axes[2], this.pad.axes[3]);
+            const gunAngle = Vector_1.default.toAngle(gunVector);
+            const multiplier = Vector_1.default.getSize(gunVector);
+            this.tank.rotateGun(gunAngle, multiplier);
+        }
+    }
+    draw(ctx) {
+        this.tank.draw(ctx);
+    }
+    handleHit(object) {
+        if (object.type !== 'bullet' || object.owner === this) {
+            return;
+        }
+        this.hp -= 10;
+        if (this.hp <= 0) {
+            this.deathEmitter.emit({});
+        }
+    }
+    maybeShot() {
+        if (this.lastShotTimestamp + this.tank.getShotFrequency() > Date.now()) {
+            return;
+        }
+        const gunVector = Vector_1.default.fromAngle(this.tank.getGunAngle(), this.tank.getBulletSpeed());
+        const startPosition = Vector_1.default.add(this.tank.getPosition(), Vector_1.default.toSize(gunVector, this.tank.getGunSize()));
+        const bullet = new Bullet_1.default(startPosition, gunVector, this);
+        this.lastShotTimestamp = Date.now();
+        this.shotEmitter.emit(bullet);
+    }
+}
+exports.default = Player;
+//# sourceMappingURL=Player.js.map
+});
+___scope___.file("tank-models/E-100.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = {
+    url: '../images/tanks/E-100_strip2.png',
+    tank: { x: 0, y: 0, width: 100, height: 170 },
+    gun: { x: 95, y: 10, width: 100, height: 200 },
+    tankCenter: { x: 50, y: 85 },
+    gunCenter: { x: 145, y: 115 },
+    gunSize: 70,
+    tankSpeed: 3,
+    tankRotationSpeed: Math.PI / 15,
+    gunRotationSpeed: Math.PI / 20,
+    bulletSpeed: 20,
+    shotFrequency: 200,
+};
+//# sourceMappingURL=E-100.js.map
+});
+___scope___.file("utils/Emitter.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class Emitter {
+    constructor() {
+        this.watchers = [];
+    }
+    subscribe(fn) {
+        this.watchers.push(fn);
+    }
+    emit(value) {
+        this.watchers.forEach(fn => fn(value));
+    }
+}
+exports.default = Emitter;
+//# sourceMappingURL=Emitter.js.map
+});
+___scope___.file("utils/Vector.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const utils_1 = require("./utils");
-class ClassicBackground {
-    constructor(colors) {
-        this.colors = colors;
-        this.position = { x: 0, y: 0 };
-        this.type = 'background';
+class Vector {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
     }
-    draw(ctx, { center }) {
-        const tileSize = 100;
-        const startX = Math.floor((center.x - ctx.canvas.width / 2) / tileSize) * tileSize;
-        const startY = Math.floor((center.y - ctx.canvas.height / 2) / tileSize) * tileSize;
-        for (let x = startX; x < center.x + ctx.canvas.width / 2; x += tileSize) {
-            for (let y = startY; y < center.y + ctx.canvas.height / 2; y += tileSize) {
-                // TODO: this.colors.length
-                ctx.fillStyle = this.colors[utils_1.mod(x + y, tileSize * 2) / tileSize];
-                ctx.fillRect(x, y, tileSize + 1, tileSize + 1);
-            }
-        }
+    static copy(vector) {
+        return new Vector(vector.x, vector.y);
     }
-    move() { }
+    static add(v1, v2) {
+        return new Vector(v1.x + v2.x, v1.y + v2.y);
+    }
+    static times(v, value) {
+        return new Vector(v.x * value, v.y * value);
+    }
+    static squaredDistance(v1, v2) {
+        return Math.pow((v1.x - v2.x), 2) + Math.pow((v1.y - v2.y), 2);
+    }
+    static toSize(v, size) {
+        const times = size / Math.sqrt(v.x * v.x + v.y * v.y) || 0;
+        return Vector.times(v, times);
+    }
+    static getSize(v) {
+        return Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.y, 2));
+    }
+    static fromAngle(angle, radius) {
+        return new Vector(Math.cos(angle + Math.PI / 2) * radius, Math.sin(angle + Math.PI / 2) * radius);
+    }
+    static toAngle(v) {
+        const angle = Math.atan2(v.y, v.x) - Math.PI / 2;
+        return utils_1.normalizeAngle(angle);
+    }
+    static fromDiff(from, to) {
+        return new Vector(to.x - from.x, to.y - from.y);
+    }
 }
-exports.default = ClassicBackground;
-//# sourceMappingURL=ClassicBackground.js.map
+exports.default = Vector;
+window.Vector = Vector;
+//# sourceMappingURL=Vector.js.map
 });
-___scope___.file("utils.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("utils/utils.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -187,177 +371,12 @@ function mod(x, y) {
 exports.mod = mod;
 //# sourceMappingURL=utils.js.map
 });
-___scope___.file("PadController.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("models/Bullet.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-class PadController {
-    // TODO.
-    constructor(updater) {
-        this.updater = updater;
-    }
-    update() {
-        this.updater.updatePads();
-    }
-}
-exports.default = PadController;
-//# sourceMappingURL=PadController.js.map
-});
-___scope___.file("PlayerManager.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Emitter_1 = require("./Emitter");
-const Player_1 = require("./Player");
-class PlayerManager {
-    constructor() {
-        this.bulletEmitter = new Emitter_1.default();
-        this.playerEmitter = new Emitter_1.default();
-        this.objectsCollide = true;
-        this.players = {};
-    }
-    *[Symbol.iterator]() {
-        const ids = Object.keys(this.players);
-        for (const id of ids) {
-            yield this.players[id];
-        }
-    }
-    updatePads() {
-        const pads = navigator.getGamepads();
-        Array.from(pads).forEach((pad, index) => {
-            if (!pad) {
-                return;
-            }
-            if (!this.players[pad.id]) {
-                this.addPlayer(pad);
-            }
-            this.players[pad.id].update(pad);
-        });
-    }
-    addPlayer(pad) {
-        const player = this.createPlayer(pad);
-        this.players[pad.id] = player;
-        this.playerEmitter.emit(player);
-    }
-    createPlayer(pad) {
-        const player = new Player_1.default(pad);
-        player.shotEmitter.subscribe(bullet => {
-            this.bulletEmitter.emit(bullet);
-        });
-        player.deathEmitter.subscribe(() => {
-            this.players[pad.id] = this.createPlayer(pad);
-        });
-        return player;
-    }
-}
-exports.default = PlayerManager;
-//# sourceMappingURL=PlayerManager.js.map
-});
-___scope___.file("Emitter.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class Emitter {
-    constructor() {
-        this.watchers = [];
-    }
-    subscribe(fn) {
-        this.watchers.push(fn);
-    }
-    emit(value) {
-        this.watchers.forEach(fn => fn(value));
-    }
-}
-exports.default = Emitter;
-//# sourceMappingURL=Emitter.js.map
-});
-___scope___.file("Player.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Bullet_1 = require("./Bullet");
-const Emitter_1 = require("./Emitter");
-const Tank_1 = require("./Tank");
-const E_100_1 = require("./tanks/E-100");
-const Vector_1 = require("./Vector");
-const colors = [
-    'green',
-    'red',
-    'blue',
-];
-class Player {
-    constructor(pad) {
-        this.shotEmitter = new Emitter_1.default();
-        this.deathEmitter = new Emitter_1.default();
-        this.type = 'player';
-        this.kills = 0;
-        this.deaths = 0;
-        this.radius = 50;
-        this.hp = 100;
-        this.lastShotTimestamp = Date.now();
-        this.pad = pad;
-        this.tank = new Tank_1.default(E_100_1.default);
-    }
-    get position() {
-        return this.tank.getPosition();
-    }
-    update(pad) {
-        this.pad = pad;
-        this.color = colors[this.pad.index];
-        const clickedButtons = this.pad.buttons.map(b => b.pressed);
-        clickedButtons.forEach((buttonClicked, i) => {
-            if (clickedButtons[i]) {
-                if (i === 5) {
-                    this.maybeShot();
-                }
-            }
-        });
-    }
-    move() {
-        let moveVector = new Vector_1.default(this.pad.axes[0], this.pad.axes[1]);
-        if (this.pad.buttons[7].pressed) {
-            moveVector = Vector_1.default.times(moveVector, 2);
-        }
-        this.tank.move(moveVector);
-        if (this.pad.axes[2] !== 0 && this.pad.axes[3] !== 0) {
-            const gunVector = new Vector_1.default(this.pad.axes[2], this.pad.axes[3]);
-            const gunAngle = Vector_1.default.toAngle(gunVector);
-            const multiplier = Vector_1.default.getSize(gunVector);
-            this.tank.rotateGun(gunAngle, multiplier);
-        }
-    }
-    draw(ctx) {
-        this.tank.draw(ctx);
-    }
-    handleHit(object) {
-        if (object.type !== 'bullet' || object.owner === this) {
-            return;
-        }
-        this.hp -= 10;
-        if (this.hp <= 0) {
-            this.deathEmitter.emit({});
-        }
-    }
-    maybeShot() {
-        if (this.lastShotTimestamp + this.tank.getShotFrequency() > Date.now()) {
-            return;
-        }
-        const gunVector = Vector_1.default.fromAngle(this.tank.getGunAngle(), this.tank.getBulletSpeed());
-        const startPosition = Vector_1.default.add(this.tank.getPosition(), Vector_1.default.toSize(gunVector, this.tank.getGunSize()));
-        const bullet = new Bullet_1.default(startPosition, gunVector, this);
-        this.lastShotTimestamp = Date.now();
-        this.shotEmitter.emit(bullet);
-    }
-}
-exports.default = Player;
-//# sourceMappingURL=Player.js.map
-});
-___scope___.file("Bullet.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Emitter_1 = require("./Emitter");
-const utils_1 = require("./utils");
+const Emitter_1 = require("../utils/Emitter");
+const utils_1 = require("../utils/utils");
 class Bullet {
     constructor(position, velocity, owner) {
         this.position = position;
@@ -381,12 +400,12 @@ class Bullet {
 exports.default = Bullet;
 //# sourceMappingURL=Bullet.js.map
 });
-___scope___.file("Tank.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("models/Tank.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const utils_1 = require("./utils");
-const Vector_1 = require("./Vector");
+const utils_1 = require("../utils/utils");
+const Vector_1 = require("../utils/Vector");
 class Tank {
     constructor(model) {
         this.gunAngle = Math.atan2(0, 0);
@@ -504,181 +523,12 @@ class Tank {
 exports.default = Tank;
 //# sourceMappingURL=Tank.js.map
 });
-___scope___.file("Vector.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("collections/SoldierManager.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const utils_1 = require("./utils");
-class Vector {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    static copy(vector) {
-        return new Vector(vector.x, vector.y);
-    }
-    static add(v1, v2) {
-        return new Vector(v1.x + v2.x, v1.y + v2.y);
-    }
-    static times(v, value) {
-        return new Vector(v.x * value, v.y * value);
-    }
-    static squaredDistance(v1, v2) {
-        return Math.pow((v1.x - v2.x), 2) + Math.pow((v1.y - v2.y), 2);
-    }
-    static toSize(v, size) {
-        const times = size / Math.sqrt(v.x * v.x + v.y * v.y) || 0;
-        return Vector.times(v, times);
-    }
-    static getSize(v) {
-        return Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.y, 2));
-    }
-    static fromAngle(angle, radius) {
-        return new Vector(Math.cos(angle + Math.PI / 2) * radius, Math.sin(angle + Math.PI / 2) * radius);
-    }
-    static toAngle(v) {
-        const angle = Math.atan2(v.y, v.x) - Math.PI / 2;
-        return utils_1.normalizeAngle(angle);
-    }
-    static fromDiff(from, to) {
-        return new Vector(to.x - from.x, to.y - from.y);
-    }
-}
-exports.default = Vector;
-window.Vector = Vector;
-//# sourceMappingURL=Vector.js.map
-});
-___scope___.file("tanks/E-100.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = {
-    url: '../images/tanks/E-100_strip2.png',
-    tank: { x: 0, y: 0, width: 100, height: 170 },
-    gun: { x: 95, y: 10, width: 100, height: 200 },
-    tankCenter: { x: 50, y: 85 },
-    gunCenter: { x: 145, y: 115 },
-    gunSize: 70,
-    tankSpeed: 3,
-    tankRotationSpeed: Math.PI / 15,
-    gunRotationSpeed: Math.PI / 20,
-    bulletSpeed: 20,
-    shotFrequency: 200,
-};
-//# sourceMappingURL=E-100.js.map
-});
-___scope___.file("Renderer.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class Renderer {
-    constructor({ scene, controller, ctx }) {
-        this.render = () => {
-            this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-            this.controller.update();
-            this.scene.move();
-            this.scene.render(this.ctx);
-            requestAnimationFrame(this.render);
-        };
-        this.scene = scene;
-        this.controller = controller;
-        this.ctx = ctx;
-        this.updateScreen();
-        window.onresize = () => this.updateScreen();
-    }
-    updateScreen() {
-        this.ctx.canvas.width = window.innerWidth;
-        this.ctx.canvas.height = window.innerHeight;
-    }
-}
-exports.default = Renderer;
-//# sourceMappingURL=Renderer.js.map
-});
-___scope___.file("Scene.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const CollisionManager_1 = require("./CollisionManager");
-class Scene {
-    constructor() {
-        this.collisionManager = new CollisionManager_1.default();
-        this.iterables = [];
-        this.centeredObject = { position: { x: 0, y: 0 } };
-    }
-    add(...iterables) {
-        for (const iterable of iterables) {
-            this.iterables.push(iterable);
-            if (iterable.objectsCollide) {
-                this.collisionManager.add(iterable);
-            }
-        }
-    }
-    render(ctx) {
-        ctx.save();
-        ctx.translate(-this.centeredObject.position.x + ctx.canvas.width / 2, -this.centeredObject.position.y + ctx.canvas.height / 2);
-        for (const iterable of this.iterables) {
-            for (const element of iterable) {
-                element.move();
-                element.draw(ctx, { center: this.centeredObject.position });
-            }
-        }
-        ctx.restore();
-    }
-    move() {
-        for (const iterable of this.iterables) {
-            for (const element of iterable) {
-                element.move();
-            }
-        }
-        this.collisionManager.checkCollisions();
-    }
-    centerAt(object) {
-        this.centeredObject = object;
-    }
-}
-exports.default = Scene;
-//# sourceMappingURL=Scene.js.map
-});
-___scope___.file("CollisionManager.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Vector_1 = require("./Vector");
-class CollisionManager {
-    constructor() {
-        this.objectIterators = [];
-    }
-    add(...objects) {
-        this.objectIterators.push(...objects);
-    }
-    checkCollisions() {
-        for (let i = 0; i < this.objectIterators.length; i++) {
-            for (let j = 0; j < i; j++) {
-                for (const o1 of this.objectIterators[i]) {
-                    for (const o2 of this.objectIterators[j]) {
-                        const collision = this.checkCollision(o1, o2);
-                        if (collision) {
-                            o1.handleHit(o2);
-                            o2.handleHit(o1);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    checkCollision(o1, o2) {
-        return Math.pow((o1.radius + o2.radius), 2) > Vector_1.default.squaredDistance(o1.position, o2.position);
-    }
-}
-exports.default = CollisionManager;
-//# sourceMappingURL=CollisionManager.js.map
-});
-___scope___.file("SoldierManager.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Emitter_1 = require("./Emitter");
-const Soldier_1 = require("./Soldier");
+const Soldier_1 = require("../models/Soldier");
+const Emitter_1 = require("../utils/Emitter");
 class SoldierManager {
     constructor() {
         this.bulletEmitter = new Emitter_1.default();
@@ -706,15 +556,15 @@ class SoldierManager {
 exports.default = SoldierManager;
 //# sourceMappingURL=SoldierManager.js.map
 });
-___scope___.file("Soldier.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("models/Soldier.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Emitter_1 = require("../utils/Emitter");
+const Sprite_1 = require("../utils/Sprite");
+const TimeController_1 = require("../utils/TimeController");
+const Vector_1 = require("../utils/Vector");
 const Bullet_1 = require("./Bullet");
-const Emitter_1 = require("./Emitter");
-const Sprite_1 = require("./Sprite");
-const TimeController_1 = require("./TimeController");
-const Vector_1 = require("./Vector");
 const URL = '../images/soldier/handgun/';
 class Soldier {
     constructor(startPosition) {
@@ -859,7 +709,7 @@ class Soldier {
 exports.default = Soldier;
 //# sourceMappingURL=Soldier.js.map
 });
-___scope___.file("Sprite.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("utils/Sprite.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -917,7 +767,7 @@ class Sprite {
 exports.default = Sprite;
 //# sourceMappingURL=Sprite.js.map
 });
-___scope___.file("TimeController.js", function(exports, require, module, __filename, __dirname){ 
+___scope___.file("utils/TimeController.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -937,6 +787,197 @@ class TimeController {
 }
 exports.default = TimeController;
 //# sourceMappingURL=TimeController.js.map
+});
+___scope___.file("engine/ClassicCamera.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class ClassicCamera {
+    updateBefore(ctx) {
+        const options = this.getOptions();
+        ctx.save();
+        ctx.translate(-options.center.x + ctx.canvas.width / 2, -options.center.y + ctx.canvas.height / 2);
+        ctx.scale(ctx.canvas.width / (options.width + ctx.canvas.width), ctx.canvas.height / (options.height + ctx.canvas.height));
+    }
+    updateAfter(ctx) {
+        ctx.restore();
+    }
+    centerAt(collection) {
+        this.collection = collection;
+    }
+    getOptions() {
+        let maxLeft = 0;
+        let maxRight = 0;
+        let maxTop = 0;
+        let maxBottom = 0;
+        for (const { position } of this.collection) {
+            maxLeft = Math.min(position.x, maxLeft);
+            maxRight = Math.max(position.x, maxRight);
+            maxTop = Math.min(position.y, maxTop);
+            maxBottom = Math.max(position.y, maxBottom);
+        }
+        return {
+            center: {
+                x: (maxLeft + maxRight) / 2,
+                y: (maxTop + maxBottom) / 2,
+            },
+            width: maxRight - maxLeft,
+            height: maxBottom - maxTop,
+        };
+    }
+}
+exports.default = ClassicCamera;
+//# sourceMappingURL=ClassicCamera.js.map
+});
+___scope___.file("engine/PadController.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class PadController {
+    // TODO.
+    constructor(updater) {
+        this.updater = updater;
+    }
+    update() {
+        this.updater.updatePads();
+    }
+}
+exports.default = PadController;
+//# sourceMappingURL=PadController.js.map
+});
+___scope___.file("engine/Renderer.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class Renderer {
+    constructor({ scene, controller, ctx, camera }) {
+        this.render = () => {
+            this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+            this.camera.updateBefore(this.ctx);
+            this.controller.update();
+            this.scene.update();
+            this.scene.render(this.ctx, this.camera.getOptions());
+            this.camera.updateAfter(this.ctx);
+            requestAnimationFrame(this.render);
+        };
+        this.scene = scene;
+        this.controller = controller;
+        this.ctx = ctx;
+        this.camera = camera;
+        this.updateScreen();
+        window.onresize = () => this.updateScreen();
+    }
+    updateScreen() {
+        this.ctx.canvas.width = window.innerWidth;
+        this.ctx.canvas.height = window.innerHeight;
+    }
+}
+exports.default = Renderer;
+//# sourceMappingURL=Renderer.js.map
+});
+___scope___.file("engine/Scene.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const CollisionManager_1 = require("./CollisionManager");
+class Scene {
+    constructor(...iterables) {
+        this.collisionManager = new CollisionManager_1.default();
+        this.iterables = [];
+        this.add(...iterables);
+    }
+    add(...iterables) {
+        for (const iterable of iterables) {
+            this.iterables.push(iterable);
+            if (iterable.objectsCollide) {
+                this.collisionManager.add(iterable);
+            }
+        }
+    }
+    render(ctx, cameraOptions) {
+        for (const iterable of this.iterables) {
+            for (const element of iterable) {
+                element.move();
+                element.draw(ctx, cameraOptions);
+            }
+        }
+        ctx.restore();
+    }
+    update() {
+        for (const iterable of this.iterables) {
+            for (const element of iterable) {
+                element.move();
+            }
+        }
+        this.collisionManager.checkCollisions();
+    }
+}
+exports.default = Scene;
+//# sourceMappingURL=Scene.js.map
+});
+___scope___.file("engine/CollisionManager.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Vector_1 = require("../utils/Vector");
+class CollisionManager {
+    constructor() {
+        this.objectIterators = [];
+    }
+    add(...objects) {
+        this.objectIterators.push(...objects);
+    }
+    checkCollisions() {
+        for (let i = 0; i < this.objectIterators.length; i++) {
+            for (let j = 0; j < i; j++) {
+                for (const o1 of this.objectIterators[i]) {
+                    for (const o2 of this.objectIterators[j]) {
+                        const collision = this.checkCollision(o1, o2);
+                        if (collision) {
+                            o1.handleHit(o2);
+                            o2.handleHit(o1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    checkCollision(o1, o2) {
+        return Math.pow((o1.radius + o2.radius), 2) > Vector_1.default.squaredDistance(o1.position, o2.position);
+    }
+}
+exports.default = CollisionManager;
+//# sourceMappingURL=CollisionManager.js.map
+});
+___scope___.file("models/ClassicBackground.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const utils_1 = require("../utils/utils");
+class ClassicBackground {
+    constructor(colors) {
+        this.colors = colors;
+        this.position = { x: 0, y: 0 };
+        this.type = 'background';
+    }
+    draw(ctx, { center }) {
+        const tileSize = 100;
+        const startX = Math.floor((center.x - ctx.canvas.width / 2) / tileSize) * tileSize;
+        const startY = Math.floor((center.y - ctx.canvas.height / 2) / tileSize) * tileSize;
+        for (let x = startX; x < center.x + ctx.canvas.width / 2; x += tileSize) {
+            for (let y = startY; y < center.y + ctx.canvas.height / 2; y += tileSize) {
+                // TODO: this.colors.length
+                ctx.fillStyle = this.colors[utils_1.mod(x + y, tileSize * 2) / tileSize];
+                ctx.fillRect(x, y, tileSize + 1, tileSize + 1);
+            }
+        }
+    }
+    move() {
+        // Empty - TODO (?)
+    }
+}
+exports.default = ClassicBackground;
+//# sourceMappingURL=ClassicBackground.js.map
 });
 });
 

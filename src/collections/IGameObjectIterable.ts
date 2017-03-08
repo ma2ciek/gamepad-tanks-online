@@ -1,4 +1,4 @@
-import IGameObject, { ICollidingGameObject } from './IGameObject';
+import IGameObject, { ICollidingGameObject } from '../models/IGameObject';
 
 interface IGameObjectIterable extends Iterable<IGameObject> {
     objectsCollide: boolean;

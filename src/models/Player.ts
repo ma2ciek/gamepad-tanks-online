@@ -1,9 +1,9 @@
+import E_100 from '../tank-models/E-100';
+import Emitter from '../utils/Emitter';
+import Vector from '../utils/Vector';
 import Bullet from './Bullet';
-import Emitter from './Emitter';
 import IGameObject, { ICollidingGameObject } from './IGameObject';
 import Tank from './Tank';
-import E_100 from './tanks/E-100';
-import Vector from './Vector';
 
 const colors = [
     'green',
@@ -64,7 +64,7 @@ export default class Player implements IGameObject {
         this.tank.move(moveVector);
 
         if (this.pad.axes[2] !== 0 && this.pad.axes[3] !== 0) {
-            const gunVector = new Vector(this.pad.axes[2], this.pad.axes[3])
+            const gunVector = new Vector(this.pad.axes[2], this.pad.axes[3]);
             const gunAngle = Vector.toAngle(gunVector);
             const multiplier = Vector.getSize(gunVector);
 

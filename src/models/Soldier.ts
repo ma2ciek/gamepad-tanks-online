@@ -1,9 +1,9 @@
+import Emitter from '../utils/Emitter';
+import Sprite from '../utils/Sprite';
+import TimeController from '../utils/TimeController';
+import Vector from '../utils/Vector';
 import Bullet from './Bullet';
-import Emitter from './Emitter';
 import IGameObject, { ICollidingGameObject } from './IGameObject';
-import Sprite from './Sprite';
-import TimeController from './TimeController';
-import Vector from './Vector';
 
 interface ISprites {
     move: Sprite;

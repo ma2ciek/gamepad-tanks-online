@@ -1,4 +1,4 @@
-import Vector from './Vector';
+import Vector from '../utils/Vector';
 
 export interface IGameObject {
     position: Vector;

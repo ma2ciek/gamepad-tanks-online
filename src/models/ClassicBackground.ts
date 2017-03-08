@@ -1,5 +1,5 @@
+import { mod } from '../utils/utils';
 import IGameObject, { IDrawOptions } from './IGameObject';
-import { mod } from './utils';
 
 export default class ClassicBackground implements IGameObject {
     public position = { x: 0, y: 0 };
@@ -22,5 +22,7 @@ export default class ClassicBackground implements IGameObject {
         }
     }
 
-    public move() { }
+    public move() {
+        // Empty - TODO (?)
+    }
 }

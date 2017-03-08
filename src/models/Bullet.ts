@@ -1,7 +1,7 @@
-import Emitter from './Emitter';
-import IGameObject from './IGameObject';
-import { drawArc } from './utils';
-import Vector from './Vector';
+import IGameObject from '../models/IGameObject';
+import Emitter from '../utils/Emitter';
+import { drawArc } from '../utils/utils';
+import Vector from '../utils/Vector';
 
 export default class Bullet implements IGameObject {
     public destroyEmitter = new Emitter();

@@ -1,11 +1,12 @@
-import BackgroundManager from './BackgroundManager';
-import BulletManager from './BulletManager';
-import ClassicBackground from './ClassicBackground';
-import PadController from './PadController';
-import PlayerManager from './PlayerManager';
-import Renderer from './Renderer';
-import Scene from './Scene';
-import SoldierManager from './SoldierManager';
+import BackgroundManager from './collections/BackgroundManager';
+import BulletManager from './collections/BulletManager';
+import PlayerManager from './collections/PlayerManager';
+import SoldierManager from './collections/SoldierManager';
+import ClassicCamera from './engine/ClassicCamera';
+import PadController from './engine/PadController';
+import Renderer from './engine/Renderer';
+import Scene from './engine/Scene';
+import ClassicBackground from './models/ClassicBackground';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -18,9 +19,8 @@ const bulletManager = new BulletManager();
 const soldierManager = new SoldierManager();
 soldierManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
 soldierManager.track(playerManager);
-soldierManager.addSoldiers([
-    { x: 200, y: 200 },
-]);
+
+window.setInterval(() => soldierManager.addSoldiers([{ x: 200, y: 200 }]), 10 * 1000);
 
 const backgroundManager = new BackgroundManager();
 const classicBackground = new ClassicBackground(['#3a3', '#6a2']);
@@ -29,20 +29,22 @@ backgroundManager.add(classicBackground);
 
 const controller = new PadController(playerManager);
 
-const scene = new Scene();
-scene.add(
+const scene = new Scene(
     backgroundManager,
-    playerManager,
     bulletManager,
+    playerManager,
     soldierManager,
 );
 
-playerManager.playerEmitter.subscribe(player => scene.centerAt(player));
+const camera = new ClassicCamera();
+
+camera.centerAt(playerManager);
 
 const renderer = new Renderer({
     scene,
     controller,
     ctx,
+    camera,
 });
 
 renderer.render();

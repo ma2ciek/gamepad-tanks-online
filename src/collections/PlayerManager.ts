@@ -1,7 +1,7 @@
-import Bullet from './Bullet';
-import Emitter from './Emitter';
+import Bullet from '../models/Bullet';
+import Player from '../models/Player';
+import Emitter from '../utils/Emitter';
 import IGameObjectIterable from './IGameObjectIterable';
-import Player from './Player';
 
 export default class PlayerManager implements IGameObjectIterable {
     public bulletEmitter = new Emitter<Bullet>();

@@ -1,12 +1,14 @@
+import IGameObjectIterable, { ICollidingGameObjectIterable } from '../collections/IGameObjectIterable';
 import CollisionManager from './CollisionManager';
-import IGameObject from './IGameObject';
-import IGameObjectIterable, { ICollidingGameObjectIterable } from './IGameObjectIterable';
-import Vector from './Vector';
+import { ICameraOptions } from './ICamera';
 
 export default class Scene {
     private collisionManager = new CollisionManager();
     private iterables: IGameObjectIterable[] = [];
-    private centeredObject: { position: Vector } = { position: { x: 0, y: 0 } };
+
+    constructor(...iterables: IGameObjectIterable[]) {
+        this.add(...iterables);
+    }
 
     public add(...iterables: IGameObjectIterable[]) {
         for (const iterable of iterables) {
@@ -18,25 +20,18 @@ export default class Scene {
         }
     }
 
-    public render(ctx: CanvasRenderingContext2D) {
-        ctx.save();
-
-        ctx.translate(
-            -this.centeredObject.position.x + ctx.canvas.width / 2,
-            -this.centeredObject.position.y + ctx.canvas.height / 2,
-        );
-
+    public render(ctx: CanvasRenderingContext2D, cameraOptions: ICameraOptions) {
         for (const iterable of this.iterables) {
             for (const element of iterable) {
                 element.move();
-                element.draw(ctx, { center: this.centeredObject.position });
+                element.draw(ctx, cameraOptions);
             }
         }
 
         ctx.restore();
     }
 
-    public move() {
+    public update() {
         for (const iterable of this.iterables) {
             for (const element of iterable) {
                 element.move();
@@ -44,9 +39,5 @@ export default class Scene {
         }
 
         this.collisionManager.checkCollisions();
-    }
-
-    public centerAt(object: IGameObject) {
-        this.centeredObject = object;
     }
 }

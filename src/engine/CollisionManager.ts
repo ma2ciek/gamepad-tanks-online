@@ -1,6 +1,6 @@
-import { ICollidingGameObject } from './IGameObject';
-import { ICollidingGameObjectIterable } from './IGameObjectIterable';
-import Vector from './Vector';
+import { ICollidingGameObjectIterable } from '../collections/IGameObjectIterable';
+import { ICollidingGameObject } from '../models/IGameObject';
+import Vector from '../utils/Vector';
 
 export default class CollisionManager {
     private objectIterators: ICollidingGameObjectIterable[] = [];

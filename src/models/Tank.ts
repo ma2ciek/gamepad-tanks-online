@@ -1,5 +1,5 @@
-import { drawImage, drawRect, loadImage, normalizeAngle } from './utils';
-import Vector from './Vector';
+import { drawImage, drawRect, loadImage, normalizeAngle } from '../utils/utils';
+import Vector from '../utils/Vector';
 
 export interface ITankModel {
     url: string;

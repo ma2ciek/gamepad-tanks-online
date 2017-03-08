@@ -1,9 +1,9 @@
-import Bullet from './Bullet';
-import Emitter from './Emitter';
-import IGameObject from './IGameObject';
+import Bullet from '../models/Bullet';
+import IGameObject from '../models/IGameObject';
+import Soldier from '../models/Soldier';
+import Emitter from '../utils/Emitter';
+import Vector from '../utils/Vector';
 import IGameObjectIterable from './IGameObjectIterable';
-import Soldier from './Soldier';
-import Vector from './Vector';
 
 export default class SoldierManager implements IGameObjectIterable {
     public bulletEmitter = new Emitter<Bullet>();

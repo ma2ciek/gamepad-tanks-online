@@ -1,4 +1,4 @@
-import Bullet from './Bullet';
+import Bullet from '../models/Bullet';
 import IGameObjectIterable from './IGameObjectIterable';
 
 export default class BulletManager implements IGameObjectIterable {
