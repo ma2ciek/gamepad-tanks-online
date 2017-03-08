@@ -1,10 +1,11 @@
-import IGameObject from './IGameObject';
+import { ICollidingGameObject } from './IGameObject';
+import { ICollidingGameObjectIterable } from './IGameObjectIterable';
 import Vector from './Vector';
 
 export default class CollisionManager {
-    private objectIterators: Array<Iterable<IGameObject>> = [];
+    private objectIterators: ICollidingGameObjectIterable[] = [];
 
-    public add(...objects: Array<Iterable<IGameObject>>) {
+    public add(...objects: ICollidingGameObjectIterable[]) {
         this.objectIterators.push(...objects);
     }
 
@@ -25,7 +26,7 @@ export default class CollisionManager {
         }
     }
 
-    private checkCollision(o1: IGameObject, o2: IGameObject) {
+    private checkCollision(o1: ICollidingGameObject, o2: ICollidingGameObject) {
         return (o1.radius + o2.radius) ** 2 > Vector.squaredDistance(o1.position, o2.position);
     }
 }

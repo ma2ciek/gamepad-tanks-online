@@ -1,6 +1,8 @@
 import Bullet from './Bullet';
+import IGameObjectIterable from './IGameObjectIterable';
 
-export default class BulletManager {
+export default class BulletManager implements IGameObjectIterable {
+    public objectsCollide = true;
     private bullets: Bullet[] = [];
 
     public [Symbol.iterator]() {

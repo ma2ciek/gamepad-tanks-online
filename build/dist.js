@@ -10,6 +10,8 @@ const PlayerManager_1 = require("./PlayerManager");
 const Renderer_1 = require("./Renderer");
 const Scene_1 = require("./Scene");
 const SoldierManager_1 = require("./SoldierManager");
+const BackgroundManager_1 = require("./BackgroundManager");
+const ClassicBackground_1 = require("./ClassicBackground");
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const playerManager = new PlayerManager_1.default();
@@ -21,9 +23,12 @@ soldierManager.track(playerManager);
 soldierManager.addSoldiers([
     { x: 200, y: 200 },
 ]);
+const backgroundManager = new BackgroundManager_1.default();
+const classicBackground = new ClassicBackground_1.default(['#3a3', '#6a2']);
+backgroundManager.add(classicBackground);
 const controller = new PadController_1.default(playerManager);
 const scene = new Scene_1.default();
-scene.add(playerManager, bulletManager, soldierManager);
+scene.add(backgroundManager, playerManager, bulletManager, soldierManager);
 playerManager.playerEmitter.subscribe(player => scene.centerAt(player));
 const renderer = new Renderer_1.default({
     scene,
@@ -39,6 +44,7 @@ ___scope___.file("BulletManager.js", function(exports, require, module, __filena
 Object.defineProperty(exports, "__esModule", { value: true });
 class BulletManager {
     constructor() {
+        this.objectsCollide = true;
         this.bullets = [];
     }
     [Symbol.iterator]() {
@@ -80,6 +86,7 @@ class PlayerManager {
     constructor() {
         this.bulletEmitter = new Emitter_1.default();
         this.playerEmitter = new Emitter_1.default();
+        this.objectsCollide = true;
         this.players = [];
     }
     [Symbol.iterator]() {
@@ -178,8 +185,10 @@ class Player {
         }
         this.tank.move(moveVector);
         if (this.pad.axes[2] !== 0 && this.pad.axes[3] !== 0) {
-            const gunAngle = Vector_1.default.toAngle(new Vector_1.default(this.pad.axes[2], this.pad.axes[3]));
-            this.tank.rotateGun(gunAngle);
+            const gunVector = new Vector_1.default(this.pad.axes[2], this.pad.axes[3]);
+            const gunAngle = Vector_1.default.toAngle(gunVector);
+            const multiplier = Vector_1.default.getSize(gunVector);
+            this.tank.rotateGun(gunAngle, multiplier);
         }
     }
     draw(ctx) {
@@ -308,6 +317,13 @@ function joinIterators(...iterators) {
     };
 }
 exports.joinIterators = joinIterators;
+function mod(x, y) {
+    const result = x % y;
+    return (result >= 0) ?
+        result :
+        result + y;
+}
+exports.mod = mod;
 //# sourceMappingURL=utils.js.map
 });
 ___scope___.file("Tank.js", function(exports, require, module, __filename, __dirname){ 
@@ -353,8 +369,8 @@ class Tank {
         }
         this.tankAngle = utils_1.normalizeAngle(this.tankAngle);
     }
-    rotateGun(gunAngle) {
-        const movement = Math.min(this.model.gunRotationSpeed, Math.abs(this.gunAngle - gunAngle));
+    rotateGun(gunAngle, multiplier) {
+        const movement = Math.min(this.model.gunRotationSpeed * multiplier, Math.abs(this.gunAngle - gunAngle));
         if ((this.gunAngle - gunAngle > 0 && this.gunAngle - gunAngle < Math.PI) ||
             this.gunAngle - gunAngle < -Math.PI) {
             this.gunAngle -= movement;
@@ -532,12 +548,15 @@ class Scene {
     constructor() {
         this.collisionManager = new CollisionManager_1.default();
         this.iterables = [];
+        this.centeredObject = { position: { x: 0, y: 0 } };
     }
     add(...iterables) {
         for (const iterable of iterables) {
             this.iterables.push(iterable);
+            if (iterable.objectsCollide) {
+                this.collisionManager.add(iterable);
+            }
         }
-        this.collisionManager.add(...iterables);
     }
     render(ctx) {
         ctx.save();
@@ -545,7 +564,7 @@ class Scene {
         for (const iterable of this.iterables) {
             for (const element of iterable) {
                 element.move();
-                element.draw(ctx);
+                element.draw(ctx, { center: this.centeredObject.position });
             }
         }
         ctx.restore();
@@ -608,6 +627,7 @@ const Soldier_1 = require("./Soldier");
 class SoldierManager {
     constructor() {
         this.bulletEmitter = new Emitter_1.default();
+        this.objectsCollide = true;
         this.soldiers = [];
     }
     [Symbol.iterator]() {
@@ -847,6 +867,52 @@ class TimeController {
 }
 exports.default = TimeController;
 //# sourceMappingURL=TimeController.js.map
+});
+___scope___.file("BackgroundManager.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class BackgroundManager {
+    constructor() {
+        this.objectsCollide = false;
+        this.backgrounds = [];
+    }
+    [Symbol.iterator]() {
+        return this.backgrounds[Symbol.iterator]();
+    }
+    add(bg) {
+        this.backgrounds.push(bg);
+    }
+}
+exports.default = BackgroundManager;
+//# sourceMappingURL=BackgroundManager.js.map
+});
+___scope___.file("ClassicBackground.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const utils_1 = require("./utils");
+class ClassicBackground {
+    constructor(colors) {
+        this.colors = colors;
+        this.position = { x: 0, y: 0 };
+        this.type = 'background';
+    }
+    draw(ctx, { center }) {
+        const tileSize = 100;
+        const startX = Math.floor((center.x - ctx.canvas.width / 2) / tileSize) * tileSize;
+        const startY = Math.floor((center.y - ctx.canvas.height / 2) / tileSize) * tileSize;
+        for (let x = startX; x < center.x + ctx.canvas.width / 2; x += tileSize) {
+            for (let y = startY; y < center.y + ctx.canvas.height / 2; y += tileSize) {
+                ctx.fillStyle = this.colors[utils_1.mod(x + y, tileSize * 2) / tileSize];
+                ctx.fillRect(x, y, tileSize, tileSize);
+            }
+        }
+    }
+    move() { }
+}
+exports.default = ClassicBackground;
+//# sourceMappingURL=ClassicBackground.js.map
 });
 });
 

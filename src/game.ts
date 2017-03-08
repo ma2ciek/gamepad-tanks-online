@@ -4,6 +4,8 @@ import PlayerManager from './PlayerManager';
 import Renderer from './Renderer';
 import Scene from './Scene';
 import SoldierManager from './SoldierManager';
+import BackgroundManager from './BackgroundManager';
+import ClassicBackground from './ClassicBackground';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -20,10 +22,16 @@ soldierManager.addSoldiers([
     { x: 200, y: 200 },
 ]);
 
+const backgroundManager = new BackgroundManager();
+const classicBackground = new ClassicBackground(['#3a3', '#6a2']);
+
+backgroundManager.add(classicBackground);
+
 const controller = new PadController(playerManager);
 
 const scene = new Scene();
 scene.add(
+    backgroundManager,
     playerManager,
     bulletManager,
     soldierManager,

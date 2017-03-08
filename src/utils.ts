@@ -110,3 +110,11 @@ export function joinIterators<T extends object>(...iterators: T[][]) {
         },
     };
 }
+
+export function mod(x: number, y: number) {
+    const result = x % y;
+
+    return (result >= 0) ?
+        result :
+        result + y;
+}

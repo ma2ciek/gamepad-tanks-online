@@ -1,6 +1,6 @@
 import Bullet from './Bullet';
 import Emitter from './Emitter';
-import IGameObject from './IGameObject';
+import IGameObject, { ICollidingGameObject } from './IGameObject';
 import Sprite from './Sprite';
 import TimeController from './TimeController';
 import Vector from './Vector';
@@ -69,7 +69,7 @@ export default class Soldier implements IGameObject {
         this.trackedObjects = iterable;
     }
 
-    public handleHit(object: IGameObject) {
+    public handleHit(object: ICollidingGameObject) {
         if (object.type !== 'bullet' || object.owner === this) {
             return;
         }

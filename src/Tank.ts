@@ -75,8 +75,8 @@ export default class Tank {
         this.tankAngle = normalizeAngle(this.tankAngle);
     }
 
-    public rotateGun(gunAngle: number) {
-        const movement = Math.min(this.model.gunRotationSpeed, Math.abs(this.gunAngle - gunAngle));
+    public rotateGun(gunAngle: number, multiplier: number) {
+        const movement = Math.min(this.model.gunRotationSpeed * multiplier, Math.abs(this.gunAngle - gunAngle));
 
         if ((this.gunAngle - gunAngle > 0 && this.gunAngle - gunAngle < Math.PI) ||
             this.gunAngle - gunAngle < -Math.PI) {

@@ -1,11 +1,13 @@
 import Bullet from './Bullet';
 import Emitter from './Emitter';
 import IGameObject from './IGameObject';
+import IGameObjectIterable from './IGameObjectIterable';
 import Soldier from './Soldier';
 import Vector from './Vector';
 
-export default class SoldierManager {
+export default class SoldierManager implements IGameObjectIterable {
     public bulletEmitter = new Emitter<Bullet>();
+    public objectsCollide = true;
 
     private soldiers: Soldier[] = [];
     private trackedObjects: Iterable<IGameObject>;

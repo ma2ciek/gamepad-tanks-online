@@ -1,14 +1,22 @@
 import Vector from './Vector';
 
-interface IGameObject {
+export interface IGameObject {
     position: Vector;
-    radius: number;
     type: string;
-    owner?: IGameObject;
+
+    draw(ctx: CanvasRenderingContext2D, options: IDrawOptions): void;
+    move(): void;
+}
+
+export interface ICollidingGameObject extends IGameObject {
+    radius: number;
+    owner?: ICollidingGameObject;
 
     handleHit(object: IGameObject): void;
-    draw(ctx: CanvasRenderingContext2D): void;
-    move(): void;
+}
+
+export interface IDrawOptions {
+    center: Vector;
 }
 
 export default IGameObject;
