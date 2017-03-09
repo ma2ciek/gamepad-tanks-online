@@ -1,7 +1,7 @@
 import Bullet from '../models/Bullet';
-import IGameObjectIterable from './IGameObjectIterable';
+import IGameObjectCollection from './IGameObjectCollection';
 
-export default class BulletManager implements IGameObjectIterable {
+export default class BulletManager implements IGameObjectCollection {
     public objectsCollide = true;
     private bullets: Bullet[] = [];
 

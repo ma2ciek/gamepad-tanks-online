@@ -25,12 +25,15 @@ export default class Soldier implements IGameObject {
 
     private hp = 100;
     private ammo = 6;
-    private MAGAZINE_SIZE = 6;
+    private magazineSize = 6;
     private speed = 2;
+    private bulletSpeed = 10;
     private angle = 0;
     private trackedObjects: Iterable<IGameObject>;
     private turningLeft = Math.random() < 0.5;
     private shotTimeController = new TimeController(1000);
+    private bulletDamage = 10;
+    private bulletRadius = 3;
 
     private handgunSprites: ISprites = {
         move: new Sprite({
@@ -74,7 +77,7 @@ export default class Soldier implements IGameObject {
             return;
         }
 
-        this.hp -= 10;
+        this.hp -= (object as any).damage;
 
         if (this.hp <= 0) {
             this.deathEmitter.emit({});
@@ -164,7 +167,7 @@ export default class Soldier implements IGameObject {
     }
 
     private reload() {
-        this.ammo = this.MAGAZINE_SIZE;
+        this.ammo = this.magazineSize;
         this.setSprite(this.handgunSprites.reload);
     }
 
@@ -172,13 +175,19 @@ export default class Soldier implements IGameObject {
         this.setSprite(this.handgunSprites.distanceAttack);
         this.ammo--;
 
-        const velocity = Vector.toSize(Vector.fromDiff(this.position, object.position), 5);
+        const velocity = Vector.toSize(Vector.fromDiff(this.position, object.position), this.bulletSpeed);
 
         const translation = Vector.toSize(velocity, 40);
         const spriteShotModifier = Vector.add(translation, { x: -translation.y * 0.4, y: translation.x * 0.4 });
         const startPosition = Vector.add(this.position, spriteShotModifier);
 
-        const bullet = new Bullet(startPosition, velocity, this);
+        const bullet = new Bullet({
+            position: startPosition,
+            velocity,
+            owner: this,
+            damage: this.bulletDamage,
+            radius: this.bulletRadius,
+        });
 
         this.shotEmitter.emit(bullet);
     }

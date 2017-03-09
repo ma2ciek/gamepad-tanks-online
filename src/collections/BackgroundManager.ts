@@ -1,7 +1,7 @@
 import IGameObject from '../models/IGameObject';
-import IGameObjectIterable from './IGameObjectIterable';
+import IGameObjectCollection from './IGameObjectCollection';
 
-export default class BackgroundManager implements IGameObjectIterable {
+export default class BackgroundManager implements IGameObjectCollection {
     public objectsCollide = false;
     private backgrounds: IGameObject[] = [];
 

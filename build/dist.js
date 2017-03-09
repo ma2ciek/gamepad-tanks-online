@@ -8,11 +8,12 @@ const BackgroundManager_1 = require("./collections/BackgroundManager");
 const BulletManager_1 = require("./collections/BulletManager");
 const PlayerManager_1 = require("./collections/PlayerManager");
 const SoldierManager_1 = require("./collections/SoldierManager");
-const ClassicCamera_1 = require("./engine/ClassicCamera");
 const PadController_1 = require("./engine/PadController");
 const Renderer_1 = require("./engine/Renderer");
 const Scene_1 = require("./engine/Scene");
+const WholeViewCamera_1 = require("./engine/WholeViewCamera");
 const ClassicBackground_1 = require("./models/ClassicBackground");
+const utils_1 = require("./utils/utils");
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const playerManager = new PlayerManager_1.default();
@@ -22,13 +23,14 @@ const soldierManager = new SoldierManager_1.default();
 soldierManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
 soldierManager.track(playerManager);
 window.setInterval(() => soldierManager.addSoldiers([{ x: 200, y: 200 }]), 10 * 1000);
+soldierManager.addSoldiers([{ x: 200, y: 200 }]);
 const backgroundManager = new BackgroundManager_1.default();
 const classicBackground = new ClassicBackground_1.default(['#3a3', '#6a2']);
 backgroundManager.add(classicBackground);
 const controller = new PadController_1.default(playerManager);
 const scene = new Scene_1.default(backgroundManager, bulletManager, playerManager, soldierManager);
-const camera = new ClassicCamera_1.default();
-camera.centerAt(playerManager);
+const camera = new WholeViewCamera_1.default();
+camera.track(utils_1.joinIterators(playerManager, soldierManager));
 const renderer = new Renderer_1.default({
     scene,
     controller,
@@ -191,7 +193,7 @@ class Player {
         if (object.type !== 'bullet' || object.owner === this) {
             return;
         }
-        this.hp -= 10;
+        this.hp -= object.damage;
         if (this.hp <= 0) {
             this.deathEmitter.emit({});
         }
@@ -202,7 +204,13 @@ class Player {
         }
         const gunVector = Vector_1.default.fromAngle(this.tank.getGunAngle(), this.tank.getBulletSpeed());
         const startPosition = Vector_1.default.add(this.tank.getPosition(), Vector_1.default.toSize(gunVector, this.tank.getGunSize()));
-        const bullet = new Bullet_1.default(startPosition, gunVector, this);
+        const bullet = new Bullet_1.default({
+            position: startPosition,
+            velocity: gunVector,
+            owner: this,
+            damage: this.tank.getBulletDamage(),
+            radius: this.tank.getBulletRadius(),
+        });
         this.lastShotTimestamp = Date.now();
         this.shotEmitter.emit(bullet);
     }
@@ -214,7 +222,7 @@ ___scope___.file("tank-models/E-100.js", function(exports, require, module, __fi
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = {
+const E100 = {
     url: '../images/tanks/E-100_strip2.png',
     tank: { x: 0, y: 0, width: 100, height: 170 },
     gun: { x: 95, y: 10, width: 100, height: 200 },
@@ -222,11 +230,14 @@ exports.default = {
     gunCenter: { x: 145, y: 115 },
     gunSize: 70,
     tankSpeed: 3,
-    tankRotationSpeed: Math.PI / 15,
-    gunRotationSpeed: Math.PI / 20,
+    tankRotationSpeed: Math.PI / 25,
+    gunRotationSpeed: Math.PI / 30,
     bulletSpeed: 20,
-    shotFrequency: 200,
+    shotDuration: 500,
+    bulletDamage: 40,
+    bulletRadius: 5,
 };
+exports.default = E100;
 //# sourceMappingURL=E-100.js.map
 });
 ___scope___.file("utils/Emitter.js", function(exports, require, module, __filename, __dirname){ 
@@ -378,20 +389,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Emitter_1 = require("../utils/Emitter");
 const utils_1 = require("../utils/utils");
 class Bullet {
-    constructor(position, velocity, owner) {
-        this.position = position;
-        this.velocity = velocity;
-        this.owner = owner;
+    constructor(options) {
+        this.options = options;
         this.destroyEmitter = new Emitter_1.default();
-        this.radius = 3;
         this.type = 'bullet';
     }
-    draw(ctx) {
+    get position() {
+        return this.options.position;
+    }
+    get radius() {
+        return this.options.radius;
+    }
+    get damage() {
+        return this.options.damage;
+    }
+    draw(ctx, options) {
+        if (this.position.x < options.center.x - options.width / 2 ||
+            this.position.x > options.center.x + options.width / 2 ||
+            this.position.y < options.center.y - options.height / 2 ||
+            this.position.y > options.center.y + options.height / 2) {
+            this.handleHit();
+            return;
+        }
         utils_1.drawArc(ctx, this.position.x, this.position.y, this.radius, 'black');
     }
     move() {
-        this.position.x += this.velocity.x;
-        this.position.y += this.velocity.y;
+        this.position.x += this.options.velocity.x;
+        this.position.y += this.options.velocity.y;
     }
     handleHit() {
         this.destroyEmitter.emit(this);
@@ -467,7 +491,13 @@ class Tank {
         return this.model.gunSize;
     }
     getShotFrequency() {
-        return this.model.shotFrequency;
+        return this.model.shotDuration;
+    }
+    getBulletDamage() {
+        return this.model.bulletDamage;
+    }
+    getBulletRadius() {
+        return this.model.bulletRadius;
     }
     drawTank(ctx) {
         utils_1.drawImage({
@@ -574,11 +604,14 @@ class Soldier {
         this.type = 'soldier';
         this.hp = 100;
         this.ammo = 6;
-        this.MAGAZINE_SIZE = 6;
+        this.magazineSize = 6;
         this.speed = 2;
+        this.bulletSpeed = 10;
         this.angle = 0;
         this.turningLeft = Math.random() < 0.5;
         this.shotTimeController = new TimeController_1.default(1000);
+        this.bulletDamage = 10;
+        this.bulletRadius = 3;
         this.handgunSprites = {
             move: new Sprite_1.default({
                 url: URL + 'move.png', frameDuration: 50,
@@ -614,7 +647,7 @@ class Soldier {
         if (object.type !== 'bullet' || object.owner === this) {
             return;
         }
-        this.hp -= 10;
+        this.hp -= object.damage;
         if (this.hp <= 0) {
             this.deathEmitter.emit({});
         }
@@ -685,17 +718,23 @@ class Soldier {
         return this.ammo === 0;
     }
     reload() {
-        this.ammo = this.MAGAZINE_SIZE;
+        this.ammo = this.magazineSize;
         this.setSprite(this.handgunSprites.reload);
     }
     shot(object) {
         this.setSprite(this.handgunSprites.distanceAttack);
         this.ammo--;
-        const velocity = Vector_1.default.toSize(Vector_1.default.fromDiff(this.position, object.position), 5);
+        const velocity = Vector_1.default.toSize(Vector_1.default.fromDiff(this.position, object.position), this.bulletSpeed);
         const translation = Vector_1.default.toSize(velocity, 40);
         const spriteShotModifier = Vector_1.default.add(translation, { x: -translation.y * 0.4, y: translation.x * 0.4 });
         const startPosition = Vector_1.default.add(this.position, spriteShotModifier);
-        const bullet = new Bullet_1.default(startPosition, velocity, this);
+        const bullet = new Bullet_1.default({
+            position: startPosition,
+            velocity,
+            owner: this,
+            damage: this.bulletDamage,
+            radius: this.bulletRadius,
+        });
         this.shotEmitter.emit(bullet);
     }
     setSprite(sprite) {
@@ -787,47 +826,6 @@ class TimeController {
 }
 exports.default = TimeController;
 //# sourceMappingURL=TimeController.js.map
-});
-___scope___.file("engine/ClassicCamera.js", function(exports, require, module, __filename, __dirname){ 
-
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class ClassicCamera {
-    updateBefore(ctx) {
-        const options = this.getOptions();
-        ctx.save();
-        ctx.translate(-options.center.x + ctx.canvas.width / 2, -options.center.y + ctx.canvas.height / 2);
-        ctx.scale(ctx.canvas.width / (options.width + ctx.canvas.width), ctx.canvas.height / (options.height + ctx.canvas.height));
-    }
-    updateAfter(ctx) {
-        ctx.restore();
-    }
-    centerAt(collection) {
-        this.collection = collection;
-    }
-    getOptions() {
-        let maxLeft = 0;
-        let maxRight = 0;
-        let maxTop = 0;
-        let maxBottom = 0;
-        for (const { position } of this.collection) {
-            maxLeft = Math.min(position.x, maxLeft);
-            maxRight = Math.max(position.x, maxRight);
-            maxTop = Math.min(position.y, maxTop);
-            maxBottom = Math.max(position.y, maxBottom);
-        }
-        return {
-            center: {
-                x: (maxLeft + maxRight) / 2,
-                y: (maxTop + maxBottom) / 2,
-            },
-            width: maxRight - maxLeft,
-            height: maxBottom - maxTop,
-        };
-    }
-}
-exports.default = ClassicCamera;
-//# sourceMappingURL=ClassicCamera.js.map
 });
 ___scope___.file("engine/PadController.js", function(exports, require, module, __filename, __dirname){ 
 
@@ -949,6 +947,50 @@ class CollisionManager {
 exports.default = CollisionManager;
 //# sourceMappingURL=CollisionManager.js.map
 });
+___scope___.file("engine/WholeViewCamera.js", function(exports, require, module, __filename, __dirname){ 
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class WholeViewCamera {
+    updateBefore(ctx) {
+        const options = this.getOptions();
+        const ratio = options.ratio;
+        ctx.save();
+        ctx.scale(ratio, ratio);
+        ctx.translate(ctx.canvas.width / 2 / ratio - options.center.x, ctx.canvas.height / 2 / ratio - options.center.y);
+    }
+    updateAfter(ctx) {
+        ctx.restore();
+    }
+    track(collection) {
+        this.collection = collection;
+    }
+    getOptions() {
+        let maxLeft = Infinity;
+        let maxRight = -Infinity;
+        let maxTop = Infinity;
+        let maxBottom = -Infinity;
+        for (const { position } of this.collection) {
+            maxLeft = Math.min(position.x, maxLeft);
+            maxRight = Math.max(position.x, maxRight);
+            maxTop = Math.min(position.y, maxTop);
+            maxBottom = Math.max(position.y, maxBottom);
+        }
+        const ratio = Math.min(window.innerWidth / (maxRight - maxLeft + window.innerWidth), window.innerHeight / (maxBottom - maxTop + window.innerHeight));
+        return {
+            center: {
+                x: (maxLeft + maxRight) / 2,
+                y: (maxTop + maxBottom) / 2,
+            },
+            width: window.innerWidth / ratio,
+            height: window.innerHeight / ratio,
+            ratio,
+        };
+    }
+}
+exports.default = WholeViewCamera;
+//# sourceMappingURL=WholeViewCamera.js.map
+});
 ___scope___.file("models/ClassicBackground.js", function(exports, require, module, __filename, __dirname){ 
 
 "use strict";
@@ -960,12 +1002,12 @@ class ClassicBackground {
         this.position = { x: 0, y: 0 };
         this.type = 'background';
     }
-    draw(ctx, { center }) {
+    draw(ctx, { center, width, height }) {
         const tileSize = 100;
-        const startX = Math.floor((center.x - ctx.canvas.width / 2) / tileSize) * tileSize;
-        const startY = Math.floor((center.y - ctx.canvas.height / 2) / tileSize) * tileSize;
-        for (let x = startX; x < center.x + ctx.canvas.width / 2; x += tileSize) {
-            for (let y = startY; y < center.y + ctx.canvas.height / 2; y += tileSize) {
+        const startX = Math.floor((center.x - width / 2) / tileSize) * tileSize;
+        const startY = Math.floor((center.y - height / 2) / tileSize) * tileSize;
+        for (let x = startX; x < center.x + width / 2; x += tileSize) {
+            for (let y = startY; y < center.y + height / 2; y += tileSize) {
                 // TODO: this.colors.length
                 ctx.fillStyle = this.colors[utils_1.mod(x + y, tileSize * 2) / tileSize];
                 ctx.fillRect(x, y, tileSize + 1, tileSize + 1);

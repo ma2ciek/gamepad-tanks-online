@@ -1,4 +1,4 @@
-import IGameObjectIterable, { ICollidingGameObjectIterable } from '../collections/IGameObjectIterable';
+import IGameObjectIterable, { ICollidingGameObjectCollection } from '../collections/IGameObjectCollection';
 import CollisionManager from './CollisionManager';
 import { ICameraOptions } from './ICamera';
 
@@ -15,7 +15,7 @@ export default class Scene {
             this.iterables.push(iterable);
 
             if (iterable.objectsCollide) {
-                this.collisionManager.add(iterable as ICollidingGameObjectIterable);
+                this.collisionManager.add(iterable as ICollidingGameObjectCollection);
             }
         }
     }

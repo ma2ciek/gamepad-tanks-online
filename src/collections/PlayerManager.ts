@@ -1,9 +1,9 @@
 import Bullet from '../models/Bullet';
 import Player from '../models/Player';
 import Emitter from '../utils/Emitter';
-import IGameObjectIterable from './IGameObjectIterable';
+import IGameObjectCollection from './IGameObjectCollection';
 
-export default class PlayerManager implements IGameObjectIterable {
+export default class PlayerManager implements IGameObjectCollection {
     public bulletEmitter = new Emitter<Bullet>();
     public playerEmitter = new Emitter<Player>();
     public objectsCollide = true;

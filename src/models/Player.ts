@@ -81,7 +81,7 @@ export default class Player implements IGameObject {
             return;
         }
 
-        this.hp -= 10;
+        this.hp -= (object as any).damage;
 
         if (this.hp <= 0) {
             this.deathEmitter.emit({});
@@ -96,7 +96,13 @@ export default class Player implements IGameObject {
         const gunVector = Vector.fromAngle(this.tank.getGunAngle(), this.tank.getBulletSpeed());
         const startPosition = Vector.add(this.tank.getPosition(), Vector.toSize(gunVector, this.tank.getGunSize()));
 
-        const bullet = new Bullet(startPosition, gunVector, this);
+        const bullet = new Bullet({
+            position: startPosition,
+            velocity: gunVector,
+            owner: this,
+            damage: this.tank.getBulletDamage(),
+            radius: this.tank.getBulletRadius(),
+        });
 
         this.lastShotTimestamp = Date.now();
         this.shotEmitter.emit(bullet);

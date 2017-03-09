@@ -1,26 +1,6 @@
+import ITankModel from '../tank-models/ITankModel';
 import { drawImage, drawRect, loadImage, normalizeAngle } from '../utils/utils';
 import Vector from '../utils/Vector';
-
-export interface ITankModel {
-    url: string;
-    tank: IRect;
-    gun: IRect;
-    tankCenter: Vector;
-    gunCenter: Vector;
-    gunSize: number;
-    tankSpeed: number;
-    tankRotationSpeed: number;
-    gunRotationSpeed: number;
-    bulletSpeed: number;
-    shotFrequency: number;
-}
-
-interface IRect {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
 
 export default class Tank {
     private model: ITankModel;
@@ -105,7 +85,15 @@ export default class Tank {
     }
 
     public getShotFrequency() {
-        return this.model.shotFrequency;
+        return this.model.shotDuration;
+    }
+
+    public getBulletDamage() {
+        return this.model.bulletDamage;
+    }
+
+    public getBulletRadius() {
+        return this.model.bulletRadius;
     }
 
     private drawTank(ctx: CanvasRenderingContext2D) {

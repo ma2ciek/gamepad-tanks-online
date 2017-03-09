@@ -8,6 +8,8 @@ interface ICamera {
 
 export interface ICameraOptions {
     center: Vector;
+    width: number;
+    height: number;
 }
 
 export default ICamera;
