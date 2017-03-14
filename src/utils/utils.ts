@@ -98,12 +98,14 @@ export function normalizeAngle(angle: number) {
     return angle;
 }
 
-export function joinIterators<T, P>(iterators: T, iterator: P): T & P;
-export function joinIterators<T extends object>(...iterators: T[][]) {
+export function joinCollections<T>(collection1: T): T;
+export function joinCollections<T, P>(collection1: T, collection2: P): T & P;
+export function joinCollections<T, P, R>(collection1: T, collection2: P, collection3: R): T & P & R;
+export function joinCollections<T>(...collections: T[][]) {
     return {
         *[Symbol.iterator]() {
-            for (const iterator of iterators) {
-                for (const element of iterator) {
+            for (const collection of collections) {
+                for (const element of collection) {
                     yield element;
                 }
             }

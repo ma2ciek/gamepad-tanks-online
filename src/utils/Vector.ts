@@ -24,7 +24,12 @@ export default class Vector {
     }
 
     public static toSize(v: Vector, size: number) {
-        const times = size / Math.sqrt(v.x * v.x + v.y * v.y) || 0;
+        let times = size / Math.sqrt(v.x * v.x + v.y * v.y);
+
+        if (!Number.isFinite(times)) {
+            times = 0;
+        }
+
         return Vector.times(v, times);
     }
 

@@ -21,6 +21,7 @@ interface ITankModel {
     shotDuration: number;
     bulletDamage: number;
     bulletRadius: number;
+    hp: number;
 }
 
 export default ITankModel;

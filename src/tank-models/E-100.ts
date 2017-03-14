@@ -14,6 +14,7 @@ const E100: ITankModel = {
     shotDuration: 500,
     bulletDamage: 40,
     bulletRadius: 5,
+    hp: 100,
 };
 
 export default E100;

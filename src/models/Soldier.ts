@@ -13,15 +13,20 @@ interface ISprites {
     reload: Sprite;
 }
 
+export interface ISoldierOptions {
+    position: Vector;
+    type: 'soldier';
+}
+
 const URL = '../images/soldier/handgun/';
 
 export default class Soldier implements IGameObject {
-    public shotEmitter = new Emitter<Bullet>();
+    public bulletEmitter = new Emitter<Bullet>();
     public deathEmitter = new Emitter();
 
     public position: Vector;
     public radius = 30;
-    public type = 'soldier';
+    public type: 'soldier' = 'soldier';
 
     private hp = 100;
     private ammo = 6;
@@ -60,8 +65,8 @@ export default class Soldier implements IGameObject {
 
     private currentSprite = this.handgunSprites.idle;
 
-    constructor(startPosition: Vector) {
-        this.position = startPosition;
+    constructor({ position }: ISoldierOptions) {
+        this.position = position;
     }
 
     public draw(ctx: CanvasRenderingContext2D) {
@@ -141,7 +146,7 @@ export default class Soldier implements IGameObject {
     }
 
     private findBestOpponent() {
-        const opponents = Array.from(this.trackedObjects);
+        const opponents = Array.from(this.trackedObjects).filter(obj => obj !== this);
 
         let bestOpponent = opponents[0];
 
@@ -189,7 +194,7 @@ export default class Soldier implements IGameObject {
             radius: this.bulletRadius,
         });
 
-        this.shotEmitter.emit(bullet);
+        this.bulletEmitter.emit(bullet);
     }
 
     private setSprite(sprite: Sprite) {

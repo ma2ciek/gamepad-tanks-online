@@ -5,10 +5,12 @@
   "author": "Maciej Bukowski<ma2ciek@gmail.com>",
   "dependencies": {
     "gulp-tslint": "^7.1.0",
+    "howler": "^2.0.3",
     "typescript": "^2.2.1"
   },
   "devDependencies": {
     "@types/chai": "^3.4.35",
+    "@types/howler": "^2.0.1",
     "@types/mocha": "^2.2.39",
     "@types/sinon": "^1.16.35",
     "chai": "^3.5.0",
@@ -18,7 +20,7 @@
     "mocha": "^3.2.0",
     "sinon": "^1.17.7",
     "ts-node": "^2.1.0",
-    "tslint": "^4.5.1",
+    "tslint": "^4.5.1"
   },
   "main": "build/dist.js",
   "types": "build/dist.d.ts",
@@ -26,7 +28,7 @@
     "build": "gulp build",
     "test": "node ./scripts/test.js",
     "tschk": "tsc --project . --noEmit --pretty --noUnusedLocals",
-    "tschk:watch": "npm run tschk -- --watch",
+    "tschk:watch": "npm run tschk -- --watch"
   },
   "license": "MIT"
 }

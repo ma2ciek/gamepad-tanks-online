@@ -14,7 +14,7 @@ interface IBulletOptions {
 
 export default class Bullet implements IGameObject {
     public destroyEmitter = new Emitter();
-    public type = 'bullet';
+    public type: 'bullet' = 'bullet';
 
     public get position() {
         return this.options.position;

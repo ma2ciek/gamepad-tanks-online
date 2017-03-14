@@ -28,7 +28,7 @@ gulp.task( 'lint', () =>
 );
 
 gulp.task( "build", () => {
-	return fuseBox.bundle( ">game.ts" );
+	return fuseBox.bundle( ">index.ts" );
 } );
 
 gulp.task( 'test', () => {
