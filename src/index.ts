@@ -1,5 +1,6 @@
 import ControllerManager from './controllers/ControllerManager';
 import Game from './Game';
+// import AISoldierPlayer from './players/AISoldierPlayer';
 import HumanTankPlayer from './players/HumanTankPlayer';
 import E100 from './tank-models/E-100';
 
@@ -18,9 +19,6 @@ function start() {
         audioTheme: '/audio/theme/FragileCeiling.ogg',
         backgrounds: [{ colors: ['#3a3', '#6a2'] }],
         units: [{
-            type: 'soldier',
-            position: { x: 100, y: 100 },
-        }, {
             type: 'tank',
             position: { x: 200, y: 200 },
             player: new HumanTankPlayer(controllers[0]),
@@ -34,4 +32,6 @@ function start() {
     });
 
     game.play();
+
+
 }

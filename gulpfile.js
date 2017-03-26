@@ -1,4 +1,7 @@
-const fsbx = require( "fuse-box" );
+const {
+	FuseBox,
+	TypeScriptHelpers
+} = require( "fuse-box" );
 const gulp = require( 'gulp' );
 const tslint = require( 'gulp-tslint' );
 const del = require( 'del' );
@@ -6,7 +9,7 @@ const runTests = require( './scripts/runTests' );
 const cp = require( 'child_process' );
 
 // Create FuseBox Instance
-const fuseBox = new fsbx.FuseBox( {
+const fuseBox = new FuseBox( {
 	homeDir: "src/",
 	sourceMap: {
 		bundleReference: "sourcemaps.js.map",
@@ -14,7 +17,7 @@ const fuseBox = new fsbx.FuseBox( {
 	},
 	cache: true,
 	outFile: "./build/dist.js",
-	plugins: [ fsbx.TypeScriptHelpers ],
+	plugins: [ TypeScriptHelpers ],
 } );
 
 gulp.task( 'lint', () =>
@@ -44,8 +47,4 @@ gulp.task( 'watch', () => {
 		'build',
 		'lint',
 	] )
-} );
-
-gulp.task( 'ts-check', () => {
-	return cp.execSync( 'tsc', '--project . --noEmit --pretty --noUnusedLocals' );
 } );

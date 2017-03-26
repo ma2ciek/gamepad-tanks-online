@@ -1,3 +1,4 @@
+import ISoldierPlayer from '../players/ISoldierPlayer';
 import Emitter from '../utils/Emitter';
 import Sprite from '../utils/Sprite';
 import TimeController from '../utils/TimeController';
@@ -16,6 +17,7 @@ interface ISprites {
 export interface ISoldierOptions {
     position: Vector;
     type: 'soldier';
+    player: ISoldierPlayer;
 }
 
 const URL = '../images/soldier/handgun/';
@@ -28,19 +30,7 @@ export default class Soldier implements IGameObject {
     public radius = 30;
     public type: 'soldier' = 'soldier';
 
-    private hp = 100;
-    private ammo = 6;
-    private magazineSize = 6;
-    private speed = 2;
-    private bulletSpeed = 10;
-    private angle = 0;
-    private trackedObjects: Iterable<IGameObject>;
-    private turningLeft = Math.random() < 0.5;
-    private shotTimeController = new TimeController(1000);
-    private bulletDamage = 10;
-    private bulletRadius = 3;
-
-    private handgunSprites: ISprites = {
+    public handgunSprites: ISprites = {
         move: new Sprite({
             url: URL + 'move.png', frameDuration: 50,
             numberOfFrames: 20, zoom: 0.25,
@@ -63,10 +53,25 @@ export default class Soldier implements IGameObject {
         }),
     };
 
+    private player: ISoldierPlayer;
+
+    // TODO: Make it configurable
+    private hp = 100;
+    private ammo = 6;
+    private magazineSize = 6;
+    private speed = 2;
+    private bulletSpeed = 10;
+    private angle = 0;
+    private trackedObjects: Iterable<IGameObject>;
+    private shotTimeController = new TimeController(1000);
+    private bulletDamage = 10;
+    private bulletRadius = 3;
+
     private currentSprite = this.handgunSprites.idle;
 
-    constructor({ position }: ISoldierOptions) {
+    constructor({ position, player }: ISoldierOptions) {
         this.position = position;
+        this.player = player;
     }
 
     public draw(ctx: CanvasRenderingContext2D) {
@@ -89,63 +94,16 @@ export default class Soldier implements IGameObject {
         }
     }
 
-    public move() {
-        const opponent = this.findBestOpponent();
-
-        if (!opponent) {
-            return;
-        }
-
-        const diffVector = Vector.fromDiff(this.position, opponent.position);
-        const distance = Vector.getSize(diffVector);
-
-        if (distance > 1000) {
-            return;
-        }
-
-        // TODO: Improve this part.
-        if (this.currentSprite.hasToFinish()) {
-            return;
-        }
-
-        let moveVector: Vector;
-
-        if (distance > 400) {
-            moveVector = Vector.toSize(diffVector, Math.min(this.speed, distance));
-            this.setSprite(this.handgunSprites.move);
-        } else if (distance > 300) {
-            if (this.hasToReload()) {
-                this.reload();
-                return;
-            }
-
-            if (this.shotTimeController.can()) {
-                this.shot(opponent);
-                return;
-            }
-
-            if (Math.random() < 0.02) {
-                this.turningLeft = !this.turningLeft;
-            }
-
-            if (this.turningLeft) {
-                moveVector = Vector.toSize({ x: -diffVector.y, y: diffVector.x }, this.speed / 2);
-            } else {
-                moveVector = Vector.toSize({ x: diffVector.y, y: -diffVector.x }, this.speed / 2);
-            }
-
-            this.setSprite(this.handgunSprites.idle);
-
-        } else {
-            moveVector = Vector.toSize({ x: -diffVector.x, y: -diffVector.y }, this.speed);
-            this.setSprite(this.handgunSprites.move);
-        }
-
-        this.position = Vector.add(this.position, moveVector);
-        this.angle = Vector.toAngle(diffVector) + Math.PI / 2;
+    public getShotTimeController() {
+        return this.shotTimeController;
     }
 
-    private findBestOpponent() {
+    public move() {
+        this.player.move(this);
+    }
+
+    // TODO: move to AI.
+    public findBestOpponent() {
         const opponents = Array.from(this.trackedObjects).filter(obj => obj !== this);
 
         let bestOpponent = opponents[0];
@@ -167,16 +125,16 @@ export default class Soldier implements IGameObject {
         return bestOpponent;
     }
 
-    private hasToReload() {
+    public hasToReload() {
         return this.ammo === 0;
     }
 
-    private reload() {
+    public reload() {
         this.ammo = this.magazineSize;
         this.setSprite(this.handgunSprites.reload);
     }
 
-    private shot(object: IGameObject) {
+    public shot(object: IGameObject) {
         this.setSprite(this.handgunSprites.distanceAttack);
         this.ammo--;
 
@@ -197,12 +155,24 @@ export default class Soldier implements IGameObject {
         this.bulletEmitter.emit(bullet);
     }
 
-    private setSprite(sprite: Sprite) {
+    public setSprite(sprite: Sprite) {
         if (this.currentSprite === sprite) {
             return;
         }
 
         this.currentSprite = sprite;
         this.currentSprite.reset();
+    }
+
+    public getSpeed() {
+        return this.speed;
+    }
+
+    public getCurrentSprite() {
+        return this.currentSprite;
+    }
+
+    public setAngle(angle: number) {
+        this.angle = angle;
     }
 }

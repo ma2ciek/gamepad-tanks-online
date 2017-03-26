@@ -31,7 +31,7 @@ export default class Tank implements IGameObject, ICollidingGameObject {
     private shotSound = new Howl({
         src: '/audio/sounds/tank-shot.mp3',
         preload: true,
-     });
+    });
     private player: ITankPlayer;
     private shotTimeController: TimeController;
 
@@ -99,6 +99,22 @@ export default class Tank implements IGameObject, ICollidingGameObject {
         }
 
         this.position = Vector.add(this.position, newMoveVector);
+
+        if (this.position.x > 3000) {
+            this.position.x = 3000;
+        }
+
+        if (this.position.x < -3000) {
+            this.position.x = -3000;
+        }
+
+        if (this.position.y > 3000) {
+            this.position.y = 3000;
+        }
+
+        if (this.position.y < -3000) {
+            this.position.y = -3000;
+        }
     }
 
     private rotateTank(angle: number, multiplier: number) {

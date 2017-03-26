@@ -20,9 +20,6 @@ function start() {
         audioTheme: '/audio/theme/FragileCeiling.ogg',
         backgrounds: [{ colors: ['#3a3', '#6a2'] }],
         units: [{
-                type: 'soldier',
-                position: { x: 100, y: 100 },
-            }, {
                 type: 'tank',
                 position: { x: 200, y: 200 },
                 player: new HumanTankPlayer_1.default(controllers[0]),
@@ -40,16 +37,14 @@ function start() {
 });
 ___scope___.file("controllers/ControllerManager.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Emitter_1 = require("../utils/Emitter");
-const MouseAndKeyboardController_1 = require("./MouseAndKeyboardController");
-const PadController_1 = require("./PadController");
-class ControllerManager {
+import Emitter from '../utils/Emitter';
+import MouseAndKeyboardController from './MouseAndKeyboardController';
+import PadController from './PadController';
+export default class ControllerManager {
     constructor() {
-        this.newControllerEmitter = new Emitter_1.default();
+        this.newControllerEmitter = new Emitter();
         this.padControllers = {};
-        this.mouseAndKeyboardController = new MouseAndKeyboardController_1.default();
+        this.mouseAndKeyboardController = new MouseAndKeyboardController();
         this.update = () => {
             this.updatePads();
             requestAnimationFrame(this.update);
@@ -82,17 +77,14 @@ class ControllerManager {
         });
     }
     addPad(pad) {
-        this.padControllers[pad.id] = new PadController_1.default();
+        this.padControllers[pad.id] = new PadController();
     }
 }
-exports.default = ControllerManager;
-//# sourceMappingURL=ControllerManager.js.map
+
 });
 ___scope___.file("utils/Emitter.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class Emitter {
+export default class Emitter {
     constructor() {
         this.watchers = [];
     }
@@ -103,21 +95,18 @@ class Emitter {
         this.watchers.forEach(fn => fn(value));
     }
 }
-exports.default = Emitter;
-//# sourceMappingURL=Emitter.js.map
+
 });
 ___scope___.file("controllers/MouseAndKeyboardController.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Vector_1 = require("../utils/Vector");
+import Vector from '../utils/Vector';
 const defaultKeyBinding = {
     SPEED_UP: 16,
 };
 const defaultMouseButtonBinding = {
     SHOT_KEY: 1,
 };
-class MouseAndKeyboardController {
+export default class MouseAndKeyboardController {
     constructor() {
         this.pressedButtons = {};
         this.pressedMousedButtons = {};
@@ -174,22 +163,19 @@ class MouseAndKeyboardController {
         return !!this.pressedButtons[button] || !!this.pressedMousedButtons[button];
     }
     getLeftAxis() {
-        const vector = new Vector_1.default(+this.isPressed(68) - +this.isPressed(65), +this.isPressed(83) - +this.isPressed(87));
-        return Vector_1.default.toSize(vector, 1);
+        const vector = new Vector(+this.isPressed(68) - +this.isPressed(65), +this.isPressed(83) - +this.isPressed(87));
+        return Vector.toSize(vector, 1);
     }
     getRightAxis() {
         return this.gunVector;
     }
 }
-exports.default = MouseAndKeyboardController;
-//# sourceMappingURL=MouseAndKeyboardController.js.map
+
 });
 ___scope___.file("utils/Vector.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const utils_1 = require("./utils");
-class Vector {
+import { normalizeAngle } from './utils';
+export default class Vector {
     constructor(x, y) {
         this.x = x;
         this.y = y;
@@ -221,28 +207,24 @@ class Vector {
     }
     static toAngle(v) {
         const angle = Math.atan2(v.y, v.x) - Math.PI / 2;
-        return utils_1.normalizeAngle(angle);
+        return normalizeAngle(angle);
     }
     static fromDiff(from, to) {
         return new Vector(to.x - from.x, to.y - from.y);
     }
 }
-exports.default = Vector;
 window.Vector = Vector;
-//# sourceMappingURL=Vector.js.map
+
 });
 ___scope___.file("utils/utils.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function drawArc(ctx, x, y, r, color) {
+export function drawArc(ctx, x, y, r, color) {
     ctx.beginPath();
     ctx.fillStyle = color;
     ctx.arc(x, y, r, 0, 2 * Math.PI);
     ctx.fill();
 }
-exports.drawArc = drawArc;
-function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0, center, zoom = 1, }) {
+export function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0, center, zoom = 1, }) {
     ctx.save();
     if (!center) {
         center = { x: 0, y: 0 };
@@ -252,8 +234,7 @@ function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffse
     ctx.drawImage(image, x, y, width, height, -width / 2 * zoom, -height / 2 * zoom, width * zoom, height * zoom);
     ctx.restore();
 }
-exports.drawImage = drawImage;
-function loadImage(url) {
+export function loadImage(url) {
     return new Promise((res, rej) => {
         const image = new Image();
         image.onload = () => res(image);
@@ -262,24 +243,21 @@ function loadImage(url) {
         image.src = url;
     });
 }
-exports.loadImage = loadImage;
-function createArray(size, filler) {
+export function createArray(size, filler) {
     const arr = new Array(size);
     for (let i = 0; i < size; i++) {
         arr[i] = filler;
     }
     return arr;
 }
-exports.createArray = createArray;
-function drawRect({ ctx, x, y, width, height, strokeStyle, strokeWidth }) {
+export function drawRect({ ctx, x, y, width, height, strokeStyle, strokeWidth }) {
     if (strokeStyle && strokeWidth) {
         ctx.strokeStyle = strokeStyle;
         ctx.lineWidth = strokeWidth;
         ctx.strokeRect(x, y, width, height);
     }
 }
-exports.drawRect = drawRect;
-function normalizeAngle(angle) {
+export function normalizeAngle(angle) {
     angle = angle % (2 * Math.PI);
     if (angle > Math.PI) {
         angle -= 2 * Math.PI;
@@ -289,8 +267,7 @@ function normalizeAngle(angle) {
     }
     return angle;
 }
-exports.normalizeAngle = normalizeAngle;
-function joinCollections(...collections) {
+export function joinCollections(...collections) {
     return {
         *[Symbol.iterator]() {
             for (const collection of collections) {
@@ -301,26 +278,22 @@ function joinCollections(...collections) {
         },
     };
 }
-exports.joinCollections = joinCollections;
-function mod(x, y) {
+export function mod(x, y) {
     const result = x % y;
     return (result >= 0) ?
         result :
         result + y;
 }
-exports.mod = mod;
-//# sourceMappingURL=utils.js.map
+
 });
 ___scope___.file("controllers/PadController.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Vector_1 = require("../utils/Vector");
+import Vector from '../utils/Vector';
 const defaultKeyBinding = {
     SHOT_KEY: 5,
     SPEED_UP: 7,
 };
-class PadController {
+export default class PadController {
     get key() {
         return defaultKeyBinding;
     }
@@ -331,42 +304,39 @@ class PadController {
         return this.pad.buttons[button].pressed;
     }
     getLeftAxis() {
-        return new Vector_1.default(this.pad.axes[0], this.pad.axes[1]);
+        return new Vector(this.pad.axes[0], this.pad.axes[1]);
     }
     getRightAxis() {
-        return new Vector_1.default(this.pad.axes[2], this.pad.axes[3]);
+        return new Vector(this.pad.axes[2], this.pad.axes[3]);
     }
 }
-exports.default = PadController;
-//# sourceMappingURL=PadController.js.map
+
 });
 ___scope___.file("Game.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const howler_1 = require("howler");
-const BackgroundManager_1 = require("./collections/BackgroundManager");
-const BulletManager_1 = require("./collections/BulletManager");
-const UnitManager_1 = require("./collections/UnitManager");
-const Renderer_1 = require("./engine/Renderer");
-const Scene_1 = require("./engine/Scene");
-const WholeViewCamera_1 = require("./engine/WholeViewCamera");
-class Game {
+import { Howl } from 'howler';
+import BackgroundManager from './collections/BackgroundManager';
+import BulletManager from './collections/BulletManager';
+import UnitManager from './collections/UnitManager';
+import Renderer from './engine/Renderer';
+import Scene from './engine/Scene';
+import WholeViewCamera from './engine/WholeViewCamera';
+export default class Game {
     constructor(map) {
-        this.theme = new howler_1.Howl({ src: map.audioTheme, loop: true, preload: true });
+        this.theme = new Howl({ src: map.audioTheme, loop: true, preload: true });
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const unitManager = new UnitManager_1.default();
-        const bulletManager = new BulletManager_1.default();
+        const unitManager = new UnitManager();
+        const bulletManager = new BulletManager();
         for (const object of map.units) {
             unitManager.create(object);
         }
         unitManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
-        const backgroundManager = BackgroundManager_1.default.fromJSON(map.backgrounds);
-        const scene = new Scene_1.default(backgroundManager, bulletManager, unitManager);
-        const camera = new WholeViewCamera_1.default();
+        const backgroundManager = BackgroundManager.fromJSON(map.backgrounds);
+        const scene = new Scene(backgroundManager, bulletManager, unitManager);
+        const camera = new WholeViewCamera();
         camera.track(unitManager);
-        this.renderer = new Renderer_1.default({
+        this.renderer = new Renderer({
             scene,
             ctx,
             camera,
@@ -381,15 +351,12 @@ class Game {
         this.theme.pause();
     }
 }
-exports.default = Game;
-//# sourceMappingURL=Game.js.map
+
 });
 ___scope___.file("collections/BackgroundManager.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const ClassicBackground_1 = require("../models/ClassicBackground");
-class BackgroundManager {
+import ClassicBackground from '../models/ClassicBackground';
+export default class BackgroundManager {
     constructor() {
         this.objectsCollide = false;
         this.backgrounds = [];
@@ -398,7 +365,7 @@ class BackgroundManager {
         const backgroundManager = new BackgroundManager();
         // TODO
         for (const background of backgrounds) {
-            backgroundManager.add(new ClassicBackground_1.default(background.colors));
+            backgroundManager.add(new ClassicBackground(background.colors));
         }
         return backgroundManager;
     }
@@ -409,15 +376,12 @@ class BackgroundManager {
         this.backgrounds.push(bg);
     }
 }
-exports.default = BackgroundManager;
-//# sourceMappingURL=BackgroundManager.js.map
+
 });
 ___scope___.file("models/ClassicBackground.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const utils_1 = require("../utils/utils");
-class ClassicBackground {
+import { mod } from '../utils/utils';
+export default class ClassicBackground {
     constructor(colors) {
         this.colors = colors;
         this.position = { x: 0, y: 0 };
@@ -430,7 +394,7 @@ class ClassicBackground {
         for (let x = startX; x < center.x + width / 2; x += tileSize) {
             for (let y = startY; y < center.y + height / 2; y += tileSize) {
                 // TODO: this.colors.length
-                ctx.fillStyle = this.colors[utils_1.mod(x + y, tileSize * 2) / tileSize];
+                ctx.fillStyle = this.colors[mod(x + y, tileSize * 2) / tileSize];
                 ctx.fillRect(x, y, tileSize + 1, tileSize + 1);
             }
         }
@@ -439,14 +403,11 @@ class ClassicBackground {
         // Empty - TODO (?)
     }
 }
-exports.default = ClassicBackground;
-//# sourceMappingURL=ClassicBackground.js.map
+
 });
 ___scope___.file("collections/BulletManager.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class BulletManager {
+export default class BulletManager {
     constructor() {
         this.objectsCollide = true;
         this.bullets = [];
@@ -461,19 +422,16 @@ class BulletManager {
         });
     }
 }
-exports.default = BulletManager;
-//# sourceMappingURL=BulletManager.js.map
+
 });
 ___scope___.file("collections/UnitManager.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Soldier_1 = require("../models/Soldier");
-const Tank_1 = require("../models/Tank");
-const Emitter_1 = require("../utils/Emitter");
-class UnitManager {
+import Soldier from '../models/Soldier';
+import Tank from '../models/Tank';
+import Emitter from '../utils/Emitter';
+export default class UnitManager {
     constructor() {
-        this.bulletEmitter = new Emitter_1.default();
+        this.bulletEmitter = new Emitter();
         this.objectsCollide = true;
         this.units = [];
     }
@@ -495,67 +453,65 @@ class UnitManager {
     getInstance(options) {
         switch (options.type) {
             case 'soldier':
-                return new Soldier_1.default(options);
+                return new Soldier(options);
             case 'tank':
-                return new Tank_1.default(options);
+                return new Tank(options);
             default:
                 throw new Error('not implemented for ' + options.type);
         }
     }
 }
-exports.default = UnitManager;
-//# sourceMappingURL=UnitManager.js.map
+
 });
 ___scope___.file("models/Soldier.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Emitter_1 = require("../utils/Emitter");
-const Sprite_1 = require("../utils/Sprite");
-const TimeController_1 = require("../utils/TimeController");
-const Vector_1 = require("../utils/Vector");
-const Bullet_1 = require("./Bullet");
+import Emitter from '../utils/Emitter';
+import Sprite from '../utils/Sprite';
+import TimeController from '../utils/TimeController';
+import Vector from '../utils/Vector';
+import Bullet from './Bullet';
 const URL = '../images/soldier/handgun/';
-class Soldier {
-    constructor({ position }) {
-        this.bulletEmitter = new Emitter_1.default();
-        this.deathEmitter = new Emitter_1.default();
+export default class Soldier {
+    constructor({ position, player }) {
+        this.bulletEmitter = new Emitter();
+        this.deathEmitter = new Emitter();
         this.radius = 30;
         this.type = 'soldier';
+        this.handgunSprites = {
+            move: new Sprite({
+                url: URL + 'move.png', frameDuration: 50,
+                numberOfFrames: 20, zoom: 0.25,
+            }),
+            idle: new Sprite({
+                url: URL + 'idle.png', frameDuration: 50,
+                numberOfFrames: 20, zoom: 0.25,
+            }),
+            distanceAttack: new Sprite({
+                url: URL + 'distanceAttack.png', frameDuration: 50,
+                numberOfFrames: 3, zoom: 0.25, once: true,
+            }),
+            meleeAtack: new Sprite({
+                url: URL + 'meleeAttack.png', frameDuration: 50,
+                numberOfFrames: 10, zoom: 0.25,
+            }),
+            reload: new Sprite({
+                url: URL + 'reload.png', frameDuration: 50,
+                numberOfFrames: 15, zoom: 0.25, once: true,
+            }),
+        };
+        // TODO: Make it configurable
         this.hp = 100;
         this.ammo = 6;
         this.magazineSize = 6;
         this.speed = 2;
         this.bulletSpeed = 10;
         this.angle = 0;
-        this.turningLeft = Math.random() < 0.5;
-        this.shotTimeController = new TimeController_1.default(1000);
+        this.shotTimeController = new TimeController(1000);
         this.bulletDamage = 10;
         this.bulletRadius = 3;
-        this.handgunSprites = {
-            move: new Sprite_1.default({
-                url: URL + 'move.png', frameDuration: 50,
-                numberOfFrames: 20, zoom: 0.25,
-            }),
-            idle: new Sprite_1.default({
-                url: URL + 'idle.png', frameDuration: 50,
-                numberOfFrames: 20, zoom: 0.25,
-            }),
-            distanceAttack: new Sprite_1.default({
-                url: URL + 'distanceAttack.png', frameDuration: 50,
-                numberOfFrames: 3, zoom: 0.25, once: true,
-            }),
-            meleeAtack: new Sprite_1.default({
-                url: URL + 'meleeAttack.png', frameDuration: 50,
-                numberOfFrames: 10, zoom: 0.25,
-            }),
-            reload: new Sprite_1.default({
-                url: URL + 'reload.png', frameDuration: 50,
-                numberOfFrames: 15, zoom: 0.25, once: true,
-            }),
-        };
         this.currentSprite = this.handgunSprites.idle;
         this.position = position;
+        this.player = player;
     }
     draw(ctx) {
         this.currentSprite.draw(ctx, this.position, this.angle);
@@ -572,61 +528,22 @@ class Soldier {
             this.deathEmitter.emit({});
         }
     }
-    move() {
-        const opponent = this.findBestOpponent();
-        if (!opponent) {
-            return;
-        }
-        const diffVector = Vector_1.default.fromDiff(this.position, opponent.position);
-        const distance = Vector_1.default.getSize(diffVector);
-        if (distance > 1000) {
-            return;
-        }
-        // TODO: Improve this part.
-        if (this.currentSprite.hasToFinish()) {
-            return;
-        }
-        let moveVector;
-        if (distance > 400) {
-            moveVector = Vector_1.default.toSize(diffVector, Math.min(this.speed, distance));
-            this.setSprite(this.handgunSprites.move);
-        }
-        else if (distance > 300) {
-            if (this.hasToReload()) {
-                this.reload();
-                return;
-            }
-            if (this.shotTimeController.can()) {
-                this.shot(opponent);
-                return;
-            }
-            if (Math.random() < 0.02) {
-                this.turningLeft = !this.turningLeft;
-            }
-            if (this.turningLeft) {
-                moveVector = Vector_1.default.toSize({ x: -diffVector.y, y: diffVector.x }, this.speed / 2);
-            }
-            else {
-                moveVector = Vector_1.default.toSize({ x: diffVector.y, y: -diffVector.x }, this.speed / 2);
-            }
-            this.setSprite(this.handgunSprites.idle);
-        }
-        else {
-            moveVector = Vector_1.default.toSize({ x: -diffVector.x, y: -diffVector.y }, this.speed);
-            this.setSprite(this.handgunSprites.move);
-        }
-        this.position = Vector_1.default.add(this.position, moveVector);
-        this.angle = Vector_1.default.toAngle(diffVector) + Math.PI / 2;
+    getShotTimeController() {
+        return this.shotTimeController;
     }
+    move() {
+        this.player.move(this);
+    }
+    // TODO: move to AI.
     findBestOpponent() {
         const opponents = Array.from(this.trackedObjects).filter(obj => obj !== this);
         let bestOpponent = opponents[0];
         if (!bestOpponent) {
             return;
         }
-        let bestDistance = Vector_1.default.squaredDistance(opponents[0].position, this.position);
+        let bestDistance = Vector.squaredDistance(opponents[0].position, this.position);
         for (const opponent of opponents.slice(1)) {
-            const distance = Vector_1.default.squaredDistance(opponent.position, this.position);
+            const distance = Vector.squaredDistance(opponent.position, this.position);
             if (distance < bestDistance) {
                 bestOpponent = opponent;
                 bestDistance = distance;
@@ -644,11 +561,11 @@ class Soldier {
     shot(object) {
         this.setSprite(this.handgunSprites.distanceAttack);
         this.ammo--;
-        const velocity = Vector_1.default.toSize(Vector_1.default.fromDiff(this.position, object.position), this.bulletSpeed);
-        const translation = Vector_1.default.toSize(velocity, 40);
-        const spriteShotModifier = Vector_1.default.add(translation, { x: -translation.y * 0.4, y: translation.x * 0.4 });
-        const startPosition = Vector_1.default.add(this.position, spriteShotModifier);
-        const bullet = new Bullet_1.default({
+        const velocity = Vector.toSize(Vector.fromDiff(this.position, object.position), this.bulletSpeed);
+        const translation = Vector.toSize(velocity, 40);
+        const spriteShotModifier = Vector.add(translation, { x: -translation.y * 0.4, y: translation.x * 0.4 });
+        const startPosition = Vector.add(this.position, spriteShotModifier);
+        const bullet = new Bullet({
             position: startPosition,
             velocity,
             owner: this,
@@ -664,16 +581,22 @@ class Soldier {
         this.currentSprite = sprite;
         this.currentSprite.reset();
     }
+    getSpeed() {
+        return this.speed;
+    }
+    getCurrentSprite() {
+        return this.currentSprite;
+    }
+    setAngle(angle) {
+        this.angle = angle;
+    }
 }
-exports.default = Soldier;
-//# sourceMappingURL=Soldier.js.map
+
 });
 ___scope___.file("utils/Sprite.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const utils_1 = require("./utils");
-class Sprite {
+import { drawImage, loadImage } from './utils';
+export default class Sprite {
     constructor(options) {
         this.lastTimestamp = 0;
         this.currentFrameIndex = 0;
@@ -681,7 +604,7 @@ class Sprite {
         this.numberOfFrames = options.numberOfFrames;
         this.zoom = options.zoom || 1;
         this.once = !!options.once;
-        utils_1.loadImage(options.url).then(image => {
+        loadImage(options.url).then(image => {
             this.image = image;
             this.frameWidth = image.naturalWidth / options.numberOfFrames;
             this.frameHeight = image.height;
@@ -704,7 +627,7 @@ class Sprite {
             this.nextFrame();
             this.lastTimestamp = Date.now();
         }
-        utils_1.drawImage({
+        drawImage({
             ctx,
             angle,
             width: this.frameWidth,
@@ -723,14 +646,11 @@ class Sprite {
         }
     }
 }
-exports.default = Sprite;
-//# sourceMappingURL=Sprite.js.map
+
 });
 ___scope___.file("utils/TimeController.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class TimeController {
+export default class TimeController {
     constructor(debounceTime) {
         this.lastTimestamp = 0;
         this.debounceTime = 0;
@@ -744,19 +664,16 @@ class TimeController {
         return availible;
     }
 }
-exports.default = TimeController;
-//# sourceMappingURL=TimeController.js.map
+
 });
 ___scope___.file("models/Bullet.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Emitter_1 = require("../utils/Emitter");
-const utils_1 = require("../utils/utils");
-class Bullet {
+import Emitter from '../utils/Emitter';
+import { drawArc } from '../utils/utils';
+export default class Bullet {
     constructor(options) {
         this.options = options;
-        this.destroyEmitter = new Emitter_1.default();
+        this.destroyEmitter = new Emitter();
         this.type = 'bullet';
     }
     get position() {
@@ -776,7 +693,7 @@ class Bullet {
             this.handleHit();
             return;
         }
-        utils_1.drawArc(ctx, this.position.x, this.position.y, this.radius, 'black');
+        drawArc(ctx, this.position.x, this.position.y, this.radius, 'black');
     }
     move() {
         this.position.x += this.options.velocity.x;
@@ -786,37 +703,34 @@ class Bullet {
         this.destroyEmitter.emit(this);
     }
 }
-exports.default = Bullet;
-//# sourceMappingURL=Bullet.js.map
+
 });
 ___scope___.file("models/Tank.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const howler_1 = require("howler");
-const Emitter_1 = require("../utils/Emitter");
-const TimeController_1 = require("../utils/TimeController");
-const utils_1 = require("../utils/utils");
-const Vector_1 = require("../utils/Vector");
-const Bullet_1 = require("./Bullet");
-class Tank {
+import { Howl } from 'howler';
+import Emitter from '../utils/Emitter';
+import TimeController from '../utils/TimeController';
+import { drawImage, drawRect, loadImage, normalizeAngle } from '../utils/utils';
+import Vector from '../utils/Vector';
+import Bullet from './Bullet';
+export default class Tank {
     constructor(options) {
-        this.bulletEmitter = new Emitter_1.default();
-        this.deathEmitter = new Emitter_1.default();
+        this.bulletEmitter = new Emitter();
+        this.deathEmitter = new Emitter();
         this.type = 'tank';
         this.radius = 40;
         this.gunAngle = Math.atan2(0, 0);
         this.tankAngle = Math.atan2(0, 0);
-        this.shotSound = new howler_1.Howl({
+        this.shotSound = new Howl({
             src: '/audio/sounds/tank-shot.mp3',
             preload: true,
         });
         this.model = options.model;
         this.hp = options.model.hp;
-        this.shotTimeController = new TimeController_1.default(1000);
+        this.shotTimeController = new TimeController(1000);
         this.player = options.player;
         this.position = options.position;
-        utils_1.loadImage(this.model.url)
+        loadImage(this.model.url)
             .then(image => this.image = image);
     }
     draw(ctx) {
@@ -839,23 +753,35 @@ class Tank {
         let moveVector = this.player.getMoveVector();
         let gunVector = this.player.getGunVector();
         if (this.player.isSpeedButtonPressed()) {
-            moveVector = Vector_1.default.times(moveVector, 2);
-            gunVector = Vector_1.default.times(gunVector, 2);
+            moveVector = Vector.times(moveVector, 2);
+            gunVector = Vector.times(gunVector, 2);
         }
-        const gunAngle = Vector_1.default.toAngle(gunVector);
-        const multiplier = Vector_1.default.getSize(gunVector);
+        const gunAngle = Vector.toAngle(gunVector);
+        const multiplier = Vector.getSize(gunVector);
         this.moveTank(moveVector);
         this.rotateGun(gunAngle, multiplier);
         this.maybeShot();
     }
     moveTank(moveVector) {
-        const moveAngle = Vector_1.default.toAngle(moveVector);
+        const moveAngle = Vector.toAngle(moveVector);
         const absMoveForce = Math.abs(Math.cos(moveAngle - this.tankAngle) * this.model.tankSpeed);
-        const newMoveVector = Vector_1.default.times(moveVector, absMoveForce);
+        const newMoveVector = Vector.times(moveVector, absMoveForce);
         if (moveVector.x !== 0 || moveVector.y !== 0) {
-            this.rotateTank(moveAngle, Vector_1.default.getSize(moveVector));
+            this.rotateTank(moveAngle, Vector.getSize(moveVector));
         }
-        this.position = Vector_1.default.add(this.position, newMoveVector);
+        this.position = Vector.add(this.position, newMoveVector);
+        if (this.position.x > 3000) {
+            this.position.x = 3000;
+        }
+        if (this.position.x < -3000) {
+            this.position.x = -3000;
+        }
+        if (this.position.y > 3000) {
+            this.position.y = 3000;
+        }
+        if (this.position.y < -3000) {
+            this.position.y = -3000;
+        }
     }
     rotateTank(angle, multiplier) {
         const angleDiff = Math.abs(this.tankAngle - angle);
@@ -867,7 +793,7 @@ class Tank {
         else {
             this.tankAngle += movement;
         }
-        this.tankAngle = utils_1.normalizeAngle(this.tankAngle);
+        this.tankAngle = normalizeAngle(this.tankAngle);
     }
     rotateGun(gunAngle, multiplier) {
         const movement = Math.min(this.model.gunRotationSpeed * multiplier, Math.abs(this.gunAngle - gunAngle));
@@ -878,7 +804,7 @@ class Tank {
         else {
             this.gunAngle += movement;
         }
-        this.gunAngle = utils_1.normalizeAngle(this.gunAngle);
+        this.gunAngle = normalizeAngle(this.gunAngle);
     }
     getBulletSpeed() {
         return this.model.bulletSpeed;
@@ -899,9 +825,9 @@ class Tank {
         if (!this.player.isShooting() || !this.shotTimeController.can()) {
             return;
         }
-        const gunVector = Vector_1.default.fromAngle(this.gunAngle, this.getBulletSpeed());
-        const startPosition = Vector_1.default.add(this.getPosition(), Vector_1.default.toSize(gunVector, this.getGunSize()));
-        const bullet = new Bullet_1.default({
+        const gunVector = Vector.fromAngle(this.gunAngle, this.getBulletSpeed());
+        const startPosition = Vector.add(this.getPosition(), Vector.toSize(gunVector, this.getGunSize()));
+        const bullet = new Bullet({
             position: startPosition,
             velocity: gunVector,
             owner: this,
@@ -912,7 +838,7 @@ class Tank {
         this.shotSound.play();
     }
     drawTank(ctx) {
-        utils_1.drawImage({
+        drawImage({
             ctx,
             image: this.image,
             x: this.model.tank.x,
@@ -925,7 +851,7 @@ class Tank {
             center: this.model.tankCenter,
         });
         if (window.debugMode) {
-            utils_1.drawRect({
+            drawRect({
                 ctx,
                 x: this.position.x,
                 y: this.position.y,
@@ -937,7 +863,7 @@ class Tank {
         }
     }
     drawGun(ctx) {
-        utils_1.drawImage({
+        drawImage({
             ctx,
             image: this.image,
             x: this.model.gun.x,
@@ -950,7 +876,7 @@ class Tank {
             center: this.model.gunCenter,
         });
         if (window.debugMode) {
-            utils_1.drawRect({
+            drawRect({
                 ctx,
                 x: this.position.x,
                 y: this.position.y,
@@ -962,14 +888,11 @@ class Tank {
         }
     }
 }
-exports.default = Tank;
-//# sourceMappingURL=Tank.js.map
+
 });
 ___scope___.file("engine/Renderer.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class Renderer {
+export default class Renderer {
     constructor({ scene, ctx, camera }) {
         this.render = () => {
             this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -993,17 +916,14 @@ class Renderer {
         this.ctx.canvas.height = window.innerHeight;
     }
 }
-exports.default = Renderer;
-//# sourceMappingURL=Renderer.js.map
+
 });
 ___scope___.file("engine/Scene.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const CollisionManager_1 = require("./CollisionManager");
-class Scene {
+import CollisionManager from './CollisionManager';
+export default class Scene {
     constructor(...iterables) {
-        this.collisionManager = new CollisionManager_1.default();
+        this.collisionManager = new CollisionManager();
         this.iterables = [];
         this.add(...iterables);
     }
@@ -1033,15 +953,12 @@ class Scene {
         this.collisionManager.checkCollisions();
     }
 }
-exports.default = Scene;
-//# sourceMappingURL=Scene.js.map
+
 });
 ___scope___.file("engine/CollisionManager.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Vector_1 = require("../utils/Vector");
-class CollisionManager {
+import Vector from '../utils/Vector';
+export default class CollisionManager {
     constructor() {
         this.objectIterators = [];
     }
@@ -1064,17 +981,14 @@ class CollisionManager {
         }
     }
     checkCollision(o1, o2) {
-        return Math.pow((o1.radius + o2.radius), 2) > Vector_1.default.squaredDistance(o1.position, o2.position);
+        return Math.pow((o1.radius + o2.radius), 2) > Vector.squaredDistance(o1.position, o2.position);
     }
 }
-exports.default = CollisionManager;
-//# sourceMappingURL=CollisionManager.js.map
+
 });
 ___scope___.file("engine/WholeViewCamera.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class WholeViewCamera {
+export default class WholeViewCamera {
     updateBefore(ctx) {
         const options = this.getOptions();
         const ratio = options.ratio;
@@ -1111,14 +1025,11 @@ class WholeViewCamera {
         };
     }
 }
-exports.default = WholeViewCamera;
-//# sourceMappingURL=WholeViewCamera.js.map
+
 });
 ___scope___.file("players/HumanTankPlayer.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class HumanTankPlayer {
+export default class HumanTankPlayer {
     constructor(controller) {
         this.controller = controller;
     }
@@ -1135,13 +1046,10 @@ class HumanTankPlayer {
         return this.controller.getRightAxis();
     }
 }
-exports.default = HumanTankPlayer;
-//# sourceMappingURL=HumanTankPlayer.js.map
+
 });
 ___scope___.file("tank-models/E-100.js", function(exports, require, module, __filename, __dirname){ 
 
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const E100 = {
     url: '../images/tanks/E-100_strip2.png',
     tank: { x: 0, y: 0, width: 100, height: 170 },
@@ -1158,8 +1066,8 @@ const E100 = {
     bulletRadius: 5,
     hp: 100,
 };
-exports.default = E100;
-//# sourceMappingURL=E-100.js.map
+export default E100;
+
 });
 });
 FuseBox.pkg("howler", {}, function(___scope___){
