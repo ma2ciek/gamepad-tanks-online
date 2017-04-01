@@ -1,4 +1,4 @@
-import Vector from '../utils/Vector';
+import { Vector } from '@ma2ciek/math';
 
 interface IKeyBinding {
     SHOT_KEY: number;
@@ -8,7 +8,7 @@ interface IKeyBinding {
 interface IController {
     key: IKeyBinding;
 
-    isPressed(keyCode: number): boolean;
+    isPressed( keyCode: number ): boolean;
     getLeftAxis(): Vector;
     getRightAxis(): Vector;
 }

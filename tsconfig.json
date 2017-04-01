@@ -6,10 +6,13 @@
             "es7",
             "dom"
         ],
-        "target": "es6",
+        "module": "commonjs",
+        "target": "es2015",
         "noImplicitAny": true,
-		"strictNullChecks": true,
-		"noImplicitThis": true,
-		"noUnusedLocals": true
+        "strictNullChecks": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+
+        "moduleResolution": "node"
     }
 }

@@ -4,16 +4,16 @@ import ITankPlayer from './ITankPlayer';
 export default class HumanTankPlayer implements ITankPlayer {
     private controller: IController;
 
-    constructor(controller: IController) {
+    constructor( controller: IController ) {
         this.controller = controller;
     }
 
     public isShooting() {
-        return this.controller.isPressed(this.controller.key.SHOT_KEY);
+        return this.controller.isPressed( this.controller.key.SHOT_KEY );
     }
 
     public isSpeedButtonPressed() {
-        return this.controller.isPressed(this.controller.key.SPEED_UP);
+        return this.controller.isPressed( this.controller.key.SPEED_UP );
     }
 
     public getMoveVector() {
@@ -22,5 +22,13 @@ export default class HumanTankPlayer implements ITankPlayer {
 
     public getGunVector() {
         return this.controller.getRightAxis();
+    }
+
+    public getColor() {
+        return {
+            red: 1,
+            green: 1,
+            blue: 1,
+        };
     }
 }

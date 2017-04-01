@@ -11,9 +11,9 @@ export default class Renderer {
     private scene: Scene;
     private ctx: CanvasRenderingContext2D;
     private camera: ICamera;
-    private animatonId: number;
+    private animationId: number;
 
-    constructor({ scene, ctx, camera }: IRendererOptions) {
+    constructor( { scene, ctx, camera }: IRendererOptions ) {
         this.scene = scene;
         this.ctx = ctx;
         this.camera = camera;
@@ -23,20 +23,21 @@ export default class Renderer {
     }
 
     public stop() {
-        window.cancelAnimationFrame(this.animatonId);
+        window.cancelAnimationFrame( this.animationId );
     }
 
     public render = () => {
-        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.clearRect( 0, 0, this.ctx.canvas.width, this.ctx.canvas.height );
 
-        this.camera.updateBefore(this.ctx);
+        this.camera.updateBefore( this.ctx );
 
         this.scene.update();
-        this.scene.render(this.ctx, this.camera.getOptions());
+        this.scene.render( this.ctx, this.camera.getOptions() );
 
-        this.camera.updateAfter(this.ctx);
+        this.camera.updateAfter( this.ctx );
 
-        this.animatonId = window.requestAnimationFrame(this.render);
+        this.scene.renderStaticElements( this.ctx, this.camera.getOptions() );
+        this.animationId = window.requestAnimationFrame( this.render );
     }
 
     private updateScreen() {

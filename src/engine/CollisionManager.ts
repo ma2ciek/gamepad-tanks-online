@@ -1,6 +1,6 @@
+import { Vector } from '@ma2ciek/math';
 import { ICollidingGameObjectCollection } from '../collections/IGameObjectCollection';
 import { ICollidingGameObject } from '../models/IGameObject';
-import Vector from '../utils/Vector';
 
 export default class CollisionManager {
     private objectIterators: ICollidingGameObjectCollection[] = [];

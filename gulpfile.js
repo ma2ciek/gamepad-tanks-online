@@ -11,10 +11,7 @@ const cp = require( 'child_process' );
 // Create FuseBox Instance
 const fuseBox = new FuseBox( {
 	homeDir: "src/",
-	sourceMap: {
-		bundleReference: "sourcemaps.js.map",
-		outFile: "./build/dist.js.map",
-	},
+	sourceMaps: true,
 	cache: true,
 	outFile: "./build/dist.js",
 	plugins: [ TypeScriptHelpers ],
@@ -38,7 +35,14 @@ gulp.task( 'test', () => {
 	return runTests();
 } );
 
-gulp.task( 'default', [ 'build', 'lint', 'watch' ] );
+gulp.task( 'default', [ 'build', 'lint', 'watch', 'server' ] );
+
+gulp.task('server', () => {
+	const httpServer = cp.spawn( 'http-server', [ '.' ] );
+	httpServer.stdout.on( 'data', data => {
+		console.log( data.toString() );
+	} );
+} );
 
 gulp.task( 'watch', () => {
 	return gulp.watch( [

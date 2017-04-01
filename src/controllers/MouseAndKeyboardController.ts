@@ -1,4 +1,5 @@
-import Vector from '../utils/Vector';
+import { Vector } from '@ma2ciek/math';
+import Cursor from './Cursor';
 import IController from './IController';
 
 const defaultKeyBinding = {
@@ -10,61 +11,66 @@ const defaultMouseButtonBinding = {
 };
 
 export default class MouseAndKeyboardController implements IController {
-    private pressedButtons: { [key: number]: boolean } = {};
-    private pressedMousedButtons: { [key: number]: boolean } = {};
+    private pressedButtons: { [ key: number ]: boolean } = {};
+    private pressedMousedButtons: { [ key: number ]: boolean } = {};
     private gunVector = { x: 0, y: 0 };
+    private cursor = new Cursor();
 
     constructor() {
-        window.addEventListener('keydown', (e) => {
-            this.pressedButtons[e.keyCode] = true;
-            if (e.preventDefault) { e.preventDefault(); }
-            if (e.stopPropagation) { e.stopPropagation(); }
+        window.addEventListener( 'keydown', ( e ) => {
+            this.pressedButtons[ e.keyCode ] = true;
+            // if (e.preventDefault) { e.preventDefault(); }
+            // if (e.stopPropagation) { e.stopPropagation(); }
             // console.log(e.keyCode);
-        });
+        } );
 
-        window.addEventListener('keyup', (e) => {
-            this.pressedButtons[e.keyCode] = false;
-            if (e.preventDefault) { e.preventDefault(); }
-            if (e.stopPropagation) { e.stopPropagation(); }
-        });
+        window.addEventListener( 'keyup', ( e ) => {
+            this.pressedButtons[ e.keyCode ] = false;
+            // if (e.preventDefault) { e.preventDefault(); }
+            // if (e.stopPropagation) { e.stopPropagation(); }
+        } );
 
-        window.addEventListener('mousemove', (e) => {
-            const { clientWidth, clientHeight } = (e.target as Element);
+        this.cursor.positionFromCenterEmitter.subscribe(( cursorPositionVector ) => {
+            this.gunVector = cursorPositionVector;
+        } );
 
-            this.gunVector = {
-                x: e.clientX / clientWidth - 1 / 2,
-                y: e.clientY / clientHeight - 1 / 2,
-            };
-        });
+        window.addEventListener( 'mousedown', ( e ) => {
+            this.pressedMousedButtons[ e.which ] = true;
+            if ( e.preventDefault ) { e.preventDefault(); }
+            if ( e.stopPropagation ) { e.stopPropagation(); }
+        } );
 
-        window.addEventListener('mousedown', (e) => {
-            this.pressedMousedButtons[e.which] = true;
-            if (e.preventDefault) { e.preventDefault(); }
-            if (e.stopPropagation) { e.stopPropagation(); }
-        });
+        window.addEventListener( 'mouseup', ( e ) => {
+            this.pressedMousedButtons[ e.which ] = false;
+            if ( e.preventDefault ) { e.preventDefault(); }
+            if ( e.stopPropagation ) { e.stopPropagation(); }
+        } );
 
-        window.addEventListener('mouseup', (e) => {
-            this.pressedMousedButtons[e.which] = false;
-            if (e.preventDefault) { e.preventDefault(); }
-            if (e.stopPropagation) { e.stopPropagation(); }
-        });
+        window.addEventListener( 'contextmenu', ( e ) => {
+            e.preventDefault();
+            e.stopPropagation();
+        } );
+    };
+
+    public getCursor() {
+        return this.cursor;
     }
 
     public get key() {
         return { ...defaultKeyBinding, ...defaultMouseButtonBinding };
     }
 
-    public isPressed(button: number) {
-        return !!this.pressedButtons[button] || !!this.pressedMousedButtons[button];
+    public isPressed( button: number ) {
+        return !!this.pressedButtons[ button ] || !!this.pressedMousedButtons[ button ];
     }
 
     public getLeftAxis() {
         const vector = new Vector(
-            +this.isPressed(68) - +this.isPressed(65),
-            +this.isPressed(83) - +this.isPressed(87),
+            +this.isPressed( 68 ) - +this.isPressed( 65 ),
+            +this.isPressed( 83 ) - +this.isPressed( 87 ),
         );
 
-        return Vector.toSize(vector, 1);
+        return Vector.toSize( vector, 1 );
     }
 
     public getRightAxis() {

@@ -1,8 +1,8 @@
+import { drawArc } from '@ma2ciek/canvas';
+import { Emitter } from '@ma2ciek/events';
+import { Vector } from '@ma2ciek/math';
 import { ICameraOptions } from '../engine/ICamera';
 import IGameObject from '../models/IGameObject';
-import Emitter from '../utils/Emitter';
-import { drawArc } from '../utils/utils';
-import Vector from '../utils/Vector';
 
 interface IBulletOptions {
     position: Vector;
@@ -28,9 +28,9 @@ export default class Bullet implements IGameObject {
         return this.options.damage;
     }
 
-    public constructor(private options: IBulletOptions) { }
+    public constructor( private options: IBulletOptions ) { }
 
-    public draw(ctx: CanvasRenderingContext2D, options: ICameraOptions) {
+    public draw( ctx: CanvasRenderingContext2D, options: ICameraOptions ) {
         if (
             this.position.x < options.center.x - options.width / 2 ||
             this.position.x > options.center.x + options.width / 2 ||
@@ -42,7 +42,7 @@ export default class Bullet implements IGameObject {
             return;
         }
 
-        drawArc(ctx, this.position.x, this.position.y, this.radius, 'black');
+        drawArc( ctx, this.position.x, this.position.y, this.radius, 'black' );
     }
 
     public move() {
@@ -51,6 +51,6 @@ export default class Bullet implements IGameObject {
     }
 
     public handleHit() {
-        this.destroyEmitter.emit(this);
+        this.destroyEmitter.emit( this );
     }
 }

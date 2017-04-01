@@ -1,8 +1,8 @@
+import Sprite from '@ma2ciek/canvas/src/Sprite';
+import { Emitter } from '@ma2ciek/events';
+import { Vector } from '@ma2ciek/math';
 import ISoldierPlayer from '../players/ISoldierPlayer';
-import Emitter from '../utils/Emitter';
-import Sprite from '../utils/Sprite';
 import TimeController from '../utils/TimeController';
-import Vector from '../utils/Vector';
 import Bullet from './Bullet';
 import IGameObject, { ICollidingGameObject } from './IGameObject';
 
@@ -10,7 +10,7 @@ interface ISprites {
     move: Sprite;
     idle: Sprite;
     distanceAttack: Sprite;
-    meleeAtack: Sprite;
+    meleeAttack: Sprite;
     reload: Sprite;
 }
 
@@ -43,7 +43,7 @@ export default class Soldier implements IGameObject {
             url: URL + 'distanceAttack.png', frameDuration: 50,
             numberOfFrames: 3, zoom: 0.25, once: true,
         }),
-        meleeAtack: new Sprite({
+        meleeAttack: new Sprite({
             url: URL + 'meleeAttack.png', frameDuration: 50,
             numberOfFrames: 10, zoom: 0.25,
         }),

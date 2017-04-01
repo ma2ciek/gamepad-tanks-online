@@ -6,7 +6,7 @@
     "dependencies": {
         "gulp-tslint": "^7.1.0",
         "howler": "^2.0.3",
-        "typescript": "^2.2.1"
+        "typescript": "next"
     },
     "devDependencies": {
         "@types/chai": "^3.4.35",
@@ -20,7 +20,7 @@
         "mocha": "^3.2.0",
         "sinon": "^1.17.7",
         "ts-node": "^2.1.0",
-        "tslint": "^4.5.1"
+        "tslint": "next"
     },
     "main": "build/dist.js",
     "types": "build/dist.d.ts",

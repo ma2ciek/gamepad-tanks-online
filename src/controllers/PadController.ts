@@ -1,4 +1,4 @@
-import Vector from '../utils/Vector';
+import { Vector } from '@ma2ciek/math';
 import IController from './IController';
 
 const defaultKeyBinding = {

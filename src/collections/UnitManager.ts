@@ -1,8 +1,8 @@
+import { Emitter } from '@ma2ciek/events';
 import Bullet from '../models/Bullet';
 import IGameObject from '../models/IGameObject';
 import Soldier, { ISoldierOptions } from '../models/Soldier';
 import Tank, { ITankOptions } from '../models/Tank';
-import Emitter from '../utils/Emitter';
 import IGameObjectCollection from './IGameObjectCollection';
 
 export type IUnitOptions = ISoldierOptions | ITankOptions;

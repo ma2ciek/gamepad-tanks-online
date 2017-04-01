@@ -1,4 +1,4 @@
-import Vector from '../utils/Vector';
+import { Vector } from '@ma2ciek/math';
 
 interface IRect {
     x: number;
