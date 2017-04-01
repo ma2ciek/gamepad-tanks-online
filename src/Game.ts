@@ -1,4 +1,3 @@
-import { Howl } from 'howler';
 import BackgroundManager, { IStaticBackgroundOptions } from './collections/BackgroundManager';
 import BulletManager from './collections/BulletManager';
 import UnitManager, { IUnitOptions } from './collections/UnitManager';
@@ -16,12 +15,10 @@ interface IGameOptions {
 
 export default class Game {
     private renderer: Renderer;
-    private theme: Howl;
     private canvas: HTMLCanvasElement;
     private cursor: Cursor;
 
     constructor( map: IGameOptions ) {
-        this.theme = new Howl( { src: map.audioTheme, loop: true, preload: true } );
         this.cursor = map.cursor;
         this.canvas = document.getElementById( 'canvas' ) as HTMLCanvasElement;
         const ctx = this.canvas.getContext( '2d' ) as CanvasRenderingContext2D;
@@ -59,13 +56,10 @@ export default class Game {
     public play() {
         this.renderer.render();
         this.cursor.requestPointerLock( this.canvas );
-
-        //  this.theme.play();
     }
 
     public pause() {
         this.renderer.stop();
-        this.theme.pause();
         this.cursor.exitPointerLock();
     }
 }

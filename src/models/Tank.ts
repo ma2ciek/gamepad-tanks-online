@@ -3,7 +3,6 @@ import Emitter from '@ma2ciek/events/src/Emitter';
 import loadImage from '@ma2ciek/loaders/src/loadImage';
 import normalizeAngle from '@ma2ciek/math/src/normalizeAngle';
 import Vector from '@ma2ciek/math/src/Vector';
-// import { Howl } from 'howler';
 import ITankPlayer from '../players/ITankPlayer';
 import ITankModel from '../tank-models/ITankModel';
 import TimeController from '../utils/TimeController';
@@ -31,10 +30,6 @@ export default class Tank implements IGameObject, ICollidingGameObject {
     private tankAngle = Math.atan2( 0, 0 );
     private originalTankImage: HTMLImageElement;
     private image: Layer;
-    // private shotSound = new Howl( {
-    //     src: '/audio/sounds/tank-shot.mp3',
-    //     preload: true,
-    // } );
     private player: ITankPlayer;
     private shotTimeController: TimeController;
 
