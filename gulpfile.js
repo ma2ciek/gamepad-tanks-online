@@ -13,7 +13,7 @@ const fuseBox = new FuseBox( {
     homeDir: "src/",
     sourceMaps: true,
     cache: true,
-    outFile: "./build/dist.js",
+    outFile: "./public/build/dist.js",
     plugins: [ TypeScriptHelpers ],
 } );
 

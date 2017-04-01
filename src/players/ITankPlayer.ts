@@ -1,4 +1,3 @@
-import { IRGB } from '@ma2ciek/canvas';
 import { Vector } from '@ma2ciek/math';
 
 interface ITankPlayer {
@@ -6,7 +5,7 @@ interface ITankPlayer {
     isSpeedButtonPressed(): boolean;
     getMoveVector(): Vector;
     getGunVector(): Vector;
-    getColor(): IRGB;
+    getHue(): number;
 }
 
 export default ITankPlayer;

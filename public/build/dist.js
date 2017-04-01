@@ -10,32 +10,22 @@ const Game_1 = require("./Game");
 const HumanTankPlayer_1 = require("./players/HumanTankPlayer");
 const E_100_1 = require("./tank-models/E-100");
 const controllerManager = new ControllerManager_1.default();
-controllerManager.newControllerEmitter.subscribe((controller) => {
-    if (controllerManager.getControllers().length === 2) {
-        start();
-    }
+const game = new Game_1.default({
+    audioTheme: '/audio/theme/FragileCeiling.ogg',
+    backgrounds: [{ colors: ['#3a3', '#6a2'] }],
+    units: [],
+    cursor: controllerManager.getCursor(),
 });
-function start() {
-    const controllers = controllerManager.getControllers();
-    const game = new Game_1.default({
-        audioTheme: '/audio/theme/FragileCeiling.ogg',
-        backgrounds: [{ colors: ['#3a3', '#6a2'] }],
-        units: [{
-                type: 'tank',
-                position: { x: 200, y: 200 },
-                player: new HumanTankPlayer_1.default(controllers[0]),
-                model: E_100_1.default,
-            }, {
-                type: 'tank',
-                position: { x: 300, y: 300 },
-                player: new HumanTankPlayer_1.default(controllers[1]),
-                model: E_100_1.default,
-            }],
-        cursor: controllerManager.getCursor(),
+controllerManager.newControllerEmitter.subscribe((controller) => {
+    game.addUnit({
+        type: 'tank',
+        position: { x: 1000 * Math.random(), y: 1000 * Math.random() },
+        player: new HumanTankPlayer_1.default(controller),
+        model: E_100_1.default,
     });
-    game.play();
-    window.game = game;
-}
+});
+game.play();
+window.game = game;
 //# sourceMappingURL=index.js.map
 });
 ___scope___.file("controllers/ControllerManager.js", function(exports, require, module, __filename, __dirname){
@@ -277,17 +267,17 @@ class Game {
         this.cursor = map.cursor;
         this.canvas = document.getElementById('canvas');
         const ctx = this.canvas.getContext('2d');
-        const unitManager = new UnitManager_1.default();
+        this.unitManager = new UnitManager_1.default();
         const bulletManager = new BulletManager_1.default();
         for (const object of map.units) {
-            unitManager.create(object);
+            this.unitManager.create(object);
         }
-        unitManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
+        this.unitManager.bulletEmitter.subscribe(bullet => bulletManager.add(bullet));
         const backgroundManager = BackgroundManager_1.default.fromJSON(map.backgrounds);
-        const scene = new Scene_1.default(backgroundManager, bulletManager, unitManager);
+        const scene = new Scene_1.default(backgroundManager, bulletManager, this.unitManager);
         scene.addStaticElements(this.cursor);
         const camera = new WholeViewCamera_1.default();
-        camera.track(unitManager);
+        camera.track(this.unitManager);
         this.renderer = new Renderer_1.default({
             scene,
             ctx,
@@ -301,6 +291,9 @@ class Game {
     pause() {
         this.renderer.stop();
         this.cursor.exitPointerLock();
+    }
+    addUnit(unitOptions) {
+        this.unitManager.create(unitOptions);
     }
 }
 exports.default = Game;
@@ -666,13 +659,14 @@ class Tank {
         this.tankAngle = Math.atan2(0, 0);
         this.model = options.model;
         this.hp = options.model.hp;
+        this.maxHp = options.model.hp;
         this.shotTimeController = new TimeController_1.default(1000);
         this.player = options.player;
         this.position = options.position;
         loadImage_1.default(this.model.url)
             .then(image => {
             this.originalTankImage = image;
-            this.image = canvas_1.Layer.fromImage(image).colorize(options.player.getColor(), 0.1);
+            this.image = canvas_1.Layer.fromImage(image).colorize(options.player.getHue(), 0.1);
         });
     }
     draw(ctx) {
@@ -681,6 +675,7 @@ class Tank {
         }
         this.drawTank(ctx);
         this.drawGun(ctx);
+        this.drawTankInfo(ctx);
     }
     handleHit(object) {
         if (object.type !== 'bullet' || object.owner === this) {
@@ -777,7 +772,6 @@ class Tank {
             radius: this.getBulletRadius(),
         });
         this.bulletEmitter.emit(bullet);
-        // this.shotSound.play();
     }
     drawTank(ctx) {
         canvas_1.drawImage({
@@ -828,6 +822,14 @@ class Tank {
                 strokeWidth: 1,
             });
         }
+    }
+    drawTankInfo(ctx) {
+        ctx.fillStyle = 'black';
+        const text = Math.floor(this.hp / this.maxHp * 100).toFixed(0) + '%';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '25px Arial';
+        ctx.fillText(text, this.position.x, this.position.y);
     }
 }
 exports.default = Tank;
@@ -1012,12 +1014,8 @@ class HumanTankPlayer {
     getGunVector() {
         return this.controller.getRightAxis();
     }
-    getColor() {
-        return {
-            red: 1,
-            green: 1,
-            blue: 1,
-        };
+    getHue() {
+        return Math.random();
     }
 }
 exports.default = HumanTankPlayer;

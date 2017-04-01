@@ -24,11 +24,7 @@ export default class HumanTankPlayer implements ITankPlayer {
         return this.controller.getRightAxis();
     }
 
-    public getColor() {
-        return {
-            red: 1,
-            green: 1,
-            blue: 1,
-        };
+    public getHue() {
+        return Math.random();
     }
 }

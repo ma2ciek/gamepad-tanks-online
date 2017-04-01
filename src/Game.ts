@@ -17,34 +17,35 @@ export default class Game {
     private renderer: Renderer;
     private canvas: HTMLCanvasElement;
     private cursor: Cursor;
+    private unitManager: UnitManager;
 
     constructor( map: IGameOptions ) {
         this.cursor = map.cursor;
         this.canvas = document.getElementById( 'canvas' ) as HTMLCanvasElement;
         const ctx = this.canvas.getContext( '2d' ) as CanvasRenderingContext2D;
 
-        const unitManager = new UnitManager();
+        this.unitManager = new UnitManager();
         const bulletManager = new BulletManager();
 
         for ( const object of map.units ) {
-            unitManager.create( object );
+            this.unitManager.create( object );
         }
 
-        unitManager.bulletEmitter.subscribe( bullet => bulletManager.add( bullet ) );
+        this.unitManager.bulletEmitter.subscribe( bullet => bulletManager.add( bullet ) );
 
         const backgroundManager = BackgroundManager.fromJSON( map.backgrounds );
 
         const scene = new Scene(
             backgroundManager,
             bulletManager,
-            unitManager,
+            this.unitManager,
         );
 
         scene.addStaticElements( this.cursor );
 
         const camera = new WholeViewCamera();
 
-        camera.track( unitManager );
+        camera.track( this.unitManager );
 
         this.renderer = new Renderer( {
             scene,
@@ -61,5 +62,9 @@ export default class Game {
     public pause() {
         this.renderer.stop();
         this.cursor.exitPointerLock();
+    }
+
+    public addUnit( unitOptions: IUnitOptions ) {
+        this.unitManager.create( unitOptions );
     }
 }

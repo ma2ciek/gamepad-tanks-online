@@ -26,6 +26,7 @@ export default class Tank implements IGameObject, ICollidingGameObject {
     public radius = 40;
 
     private hp: number;
+    private maxHp: number;
     private gunAngle = Math.atan2( 0, 0 );
     private tankAngle = Math.atan2( 0, 0 );
     private originalTankImage: HTMLImageElement;
@@ -36,6 +37,7 @@ export default class Tank implements IGameObject, ICollidingGameObject {
     constructor( options: ITankOptions ) {
         this.model = options.model;
         this.hp = options.model.hp;
+        this.maxHp = options.model.hp;
 
         this.shotTimeController = new TimeController( 1000 );
 
@@ -46,7 +48,7 @@ export default class Tank implements IGameObject, ICollidingGameObject {
         loadImage( this.model.url )
             .then( image => {
                 this.originalTankImage = image;
-                this.image = Layer.fromImage( image ).colorize( options.player.getColor(), 0.1 );
+                this.image = Layer.fromImage( image ).colorize( options.player.getHue(), 0.1 );
             } );
     }
 
@@ -57,6 +59,7 @@ export default class Tank implements IGameObject, ICollidingGameObject {
 
         this.drawTank( ctx );
         this.drawGun( ctx );
+        this.drawTankInfo( ctx );
     }
 
     public handleHit( object: ICollidingGameObject ) {
@@ -182,7 +185,6 @@ export default class Tank implements IGameObject, ICollidingGameObject {
         } );
 
         this.bulletEmitter.emit( bullet );
-        // this.shotSound.play();
     }
 
     private drawTank( ctx: CanvasRenderingContext2D ) {
@@ -237,5 +239,15 @@ export default class Tank implements IGameObject, ICollidingGameObject {
                 strokeWidth: 1,
             } );
         }
+    }
+
+    private drawTankInfo( ctx: CanvasRenderingContext2D ) {
+        ctx.fillStyle = 'black';
+        const text = Math.floor( this.hp / this.maxHp * 100 ).toFixed( 0 ) + '%';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '25px Arial';
+
+        ctx.fillText( text, this.position.x, this.position.y );
     }
 }
