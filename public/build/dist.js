@@ -26,6 +26,18 @@ controllerManager.newControllerEmitter.subscribe((controller) => {
 });
 game.play();
 window.game = game;
+// Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((registration) => {
+            // Registration was successful
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }).catch((err) => {
+            // registration failed :(
+            console.log('ServiceWorker registration failed: ', err);
+        });
+    });
+}
 //# sourceMappingURL=index.js.map
 });
 ___scope___.file("controllers/ControllerManager.js", function(exports, require, module, __filename, __dirname){
@@ -1050,7 +1062,7 @@ ___scope___.file("index.js", function(exports, require, module, __filename, __di
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Emitter_1 = require("./src/Emitter");
+const Emitter_1 = require("./src/Emitter");
 exports.Emitter = Emitter_1.default;
 exports.default = {
     Emitter: Emitter_1.default,
@@ -1061,18 +1073,17 @@ ___scope___.file("src/Emitter.js", function(exports, require, module, __filename
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Emitter = (function () {
-    function Emitter() {
+class Emitter {
+    constructor() {
         this.watchers = [];
     }
-    Emitter.prototype.subscribe = function (fn) {
+    subscribe(fn) {
         this.watchers.push(fn);
-    };
-    Emitter.prototype.emit = function (value) {
-        this.watchers.forEach(function (fn) { return fn(value); });
-    };
-    return Emitter;
-}());
+    }
+    emit(value) {
+        this.watchers.forEach(fn => fn(value));
+    }
+}
 exports.default = Emitter;
 
 });
@@ -1083,7 +1094,7 @@ ___scope___.file("index.js", function(exports, require, module, __filename, __di
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Vector_1 = require("./src/Vector");
+const Vector_1 = require("./src/Vector");
 exports.Vector = Vector_1.default;
 exports.default = {
     Vector: Vector_1.default,
@@ -1094,46 +1105,45 @@ ___scope___.file("src/Vector.js", function(exports, require, module, __filename,
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var normalizeAngle_1 = require("./normalizeAngle");
-var Vector = (function () {
-    function Vector(x, y) {
+const normalizeAngle_1 = require("./normalizeAngle");
+class Vector {
+    constructor(x, y) {
         this.x = x;
         this.y = y;
     }
-    Vector.copy = function (vector) {
+    static copy(vector) {
         return new Vector(vector.x, vector.y);
-    };
-    Vector.add = function (v1, v2) {
+    }
+    static add(v1, v2) {
         return new Vector(v1.x + v2.x, v1.y + v2.y);
-    };
-    Vector.times = function (v, value) {
+    }
+    static times(v, value) {
         return new Vector(v.x * value, v.y * value);
-    };
-    Vector.squaredDistance = function (v1, v2) {
+    }
+    static squaredDistance(v1, v2) {
         return Math.pow((v1.x - v2.x), 2) + Math.pow((v1.y - v2.y), 2);
-    };
-    Vector.toSize = function (v, size) {
-        var times = size / Math.sqrt(v.x * v.x + v.y * v.y);
+    }
+    static toSize(v, size) {
+        let times = size / Math.sqrt(v.x * v.x + v.y * v.y);
         if (!Number.isFinite(times)) {
             times = 0;
         }
         return Vector.times(v, times);
-    };
-    Vector.getSize = function (v) {
+    }
+    static getSize(v) {
         return Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.y, 2));
-    };
-    Vector.fromAngle = function (angle, radius) {
+    }
+    static fromAngle(angle, radius) {
         return new Vector(Math.cos(angle + Math.PI / 2) * radius, Math.sin(angle + Math.PI / 2) * radius);
-    };
-    Vector.toAngle = function (v) {
-        var angle = Math.atan2(v.y, v.x) - Math.PI / 2;
+    }
+    static toAngle(v) {
+        const angle = Math.atan2(v.y, v.x) - Math.PI / 2;
         return normalizeAngle_1.default(angle);
-    };
-    Vector.fromDiff = function (from, to) {
+    }
+    static fromDiff(from, to) {
         return new Vector(to.x - from.x, to.y - from.y);
-    };
-    return Vector;
-}());
+    }
+}
 exports.default = Vector;
 
 });
@@ -1161,33 +1171,32 @@ ___scope___.file("src/Sprite.js", function(exports, require, module, __filename,
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var loaders_1 = require("@ma2ciek/loaders");
-var drawImage_1 = require("./drawImage");
-var Sprite = (function () {
-    function Sprite(options) {
-        var _this = this;
+const loaders_1 = require("@ma2ciek/loaders");
+const drawImage_1 = require("./drawImage");
+class Sprite {
+    constructor(options) {
         this.lastTimestamp = 0;
         this.currentFrameIndex = 0;
         this.frameDuration = options.frameDuration;
         this.numberOfFrames = options.numberOfFrames;
         this.zoom = options.zoom || 1;
         this.once = !!options.once;
-        loaders_1.loadImage(options.url).then(function (image) {
-            _this.image = image;
-            _this.frameWidth = image.naturalWidth / options.numberOfFrames;
-            _this.frameHeight = image.height;
+        loaders_1.loadImage(options.url).then(image => {
+            this.image = image;
+            this.frameWidth = image.naturalWidth / options.numberOfFrames;
+            this.frameHeight = image.height;
         });
     }
-    Sprite.prototype.reset = function () {
+    reset() {
         this.currentFrameIndex = 0;
-    };
-    Sprite.prototype.hasToFinish = function () {
+    }
+    hasToFinish() {
         return !this.isLastFrame() && this.once;
-    };
-    Sprite.prototype.isLastFrame = function () {
+    }
+    isLastFrame() {
         return this.currentFrameIndex === this.numberOfFrames - 1;
-    };
-    Sprite.prototype.draw = function (ctx, position, angle) {
+    }
+    draw(ctx, position, angle) {
         if (!this.image) {
             return;
         }
@@ -1196,8 +1205,8 @@ var Sprite = (function () {
             this.lastTimestamp = Date.now();
         }
         drawImage_1.default({
-            ctx: ctx,
-            angle: angle,
+            ctx,
+            angle,
             width: this.frameWidth,
             height: this.frameHeight,
             canvasOffsetX: position.x,
@@ -1207,14 +1216,13 @@ var Sprite = (function () {
             y: 0,
             zoom: this.zoom,
         });
-    };
-    Sprite.prototype.nextFrame = function () {
+    }
+    nextFrame() {
         if (!this.isLastFrame() || !this.once) {
             this.currentFrameIndex = (this.currentFrameIndex + 1) % this.numberOfFrames;
         }
-    };
-    return Sprite;
-}());
+    }
+}
 exports.default = Sprite;
 
 });
@@ -1222,8 +1230,7 @@ ___scope___.file("src/drawImage.js", function(exports, require, module, __filena
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function drawImage(_a) {
-    var ctx = _a.ctx, image = _a.image, x = _a.x, y = _a.y, width = _a.width, height = _a.height, canvasOffsetX = _a.canvasOffsetX, canvasOffsetY = _a.canvasOffsetY, _b = _a.angle, angle = _b === void 0 ? 0 : _b, center = _a.center, _c = _a.zoom, zoom = _c === void 0 ? 1 : _c;
+function drawImage({ ctx, image, x, y, width, height, canvasOffsetX, canvasOffsetY, angle = 0, center, zoom = 1, }) {
     ctx.save();
     if (!center) {
         center = { x: 0, y: 0 };
@@ -1240,22 +1247,25 @@ ___scope___.file("index.js", function(exports, require, module, __filename, __di
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Sprite_1 = require("./src/Sprite");
+const Sprite_1 = require("./src/Sprite");
 exports.Sprite = Sprite_1.default;
-var drawRect_1 = require("./src/drawRect");
+const drawRect_1 = require("./src/drawRect");
 exports.drawRect = drawRect_1.default;
-var drawImage_1 = require("./src/drawImage");
+const drawImage_1 = require("./src/drawImage");
 exports.drawImage = drawImage_1.default;
-var drawArc_1 = require("./src/drawArc");
+const drawArc_1 = require("./src/drawArc");
 exports.drawArc = drawArc_1.default;
-var Layer_1 = require("./src/Layer");
+const Layer_1 = require("./src/Layer");
 exports.Layer = Layer_1.default;
+const createCtx_1 = require("./src/createCtx");
+exports.createCtx = createCtx_1.default;
 exports.default = {
     Sprite: Sprite_1.default,
     drawRect: drawRect_1.default,
     drawImage: drawImage_1.default,
     drawArc: drawArc_1.default,
     Layer: Layer_1.default,
+    createCtx: createCtx_1.default,
 };
 
 });
@@ -1263,8 +1273,7 @@ ___scope___.file("src/drawRect.js", function(exports, require, module, __filenam
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function drawRect(_a) {
-    var ctx = _a.ctx, x = _a.x, y = _a.y, width = _a.width, height = _a.height, strokeStyle = _a.strokeStyle, strokeWidth = _a.strokeWidth;
+function drawRect({ ctx, x, y, width, height, strokeStyle, strokeWidth }) {
     if (strokeStyle && strokeWidth) {
         ctx.strokeStyle = strokeStyle;
         ctx.lineWidth = strokeWidth;
@@ -1291,35 +1300,48 @@ ___scope___.file("src/Layer.js", function(exports, require, module, __filename, 
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Layer = (function () {
-    function Layer() {
-        var canvas = document.createElement('canvas');
-        this.ctx = canvas.getContext('2d');
-    }
-    Layer.fromImage = function (image) {
+class Layer {
+    static fromImage(image) {
         return new Layer()
             .setSize(image.width, image.height)
             .drawImage(image);
-    };
-    Layer.prototype.drawImage = function (image) {
+    }
+    constructor() {
+        const canvas = document.createElement('canvas');
+        this.ctx = canvas.getContext('2d');
+    }
+    drawImage(image) {
         this.ctx.drawImage(image, 0, 0);
         return this;
-    };
-    Layer.prototype.setSize = function (width, height) {
-        var canvas = this.ctx.canvas;
+    }
+    setSize(width, height) {
+        const { canvas } = this.ctx;
         canvas.width = width;
         canvas.height = height;
         return this;
-    };
-    Layer.prototype.colorize = function (hue, intensity) {
+    }
+    colorize(hue, intensity) {
         return this;
-    };
-    Layer.prototype.getCanvas = function () {
+    }
+    getCanvas() {
         return this.ctx.canvas;
-    };
-    return Layer;
-}());
+    }
+}
 exports.default = Layer;
+
+});
+___scope___.file("src/createCtx.js", function(exports, require, module, __filename, __dirname){
+
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function createCtx(width, height) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = width;
+    canvas.height = height;
+    return ctx;
+}
+exports.default = createCtx;
 
 });
 return ___scope___.entry = "index.js";
@@ -1329,7 +1351,7 @@ ___scope___.file("index.js", function(exports, require, module, __filename, __di
 
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var loadImage_1 = require("./src/loadImage");
+const loadImage_1 = require("./src/loadImage");
 exports.loadImage = loadImage_1.default;
 exports.default = {
     loadImage: loadImage_1.default,
@@ -1341,9 +1363,9 @@ ___scope___.file("src/loadImage.js", function(exports, require, module, __filena
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function loadImage(url) {
-    return new Promise(function (res, rej) {
-        var image = new Image();
-        image.onload = function () { return res(image); };
+    return new Promise((res, rej) => {
+        const image = new Image();
+        image.onload = () => res(image);
         image.onerror = rej;
         image.onabort = rej;
         image.src = url;
